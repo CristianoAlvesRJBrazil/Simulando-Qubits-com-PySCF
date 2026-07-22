@@ -1,0 +1,32 @@
+# Ambientes Python
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+
+# Artefatos de compilacao LaTeX
+*.aux
+*.log
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.bbl
+*.blg
+*.lof
+*.lot
+
+# Arquivos temporarios / lixo
+pyscf
+*.xyz
+*~
+.DS_Store
+Thumbs.db
+
+# Copias duplicadas
+*Cópia*
+*Copia*
+*copy*

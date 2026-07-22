@@ -1,0 +1,246 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazil]{babel}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{left=2.5cm,right=2.5cm,top=2.5cm,bottom=2.5cm}
+\usepackage{titling}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small Proposta de Livro}
+\fancyhead[R]{\small Cristiano Alves}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\title{\textbf{Simulando Qubits com PySCF:\\ Uma Jornada do Zero aos Pontos Quânticos\\ para Computação Quântica}}
+\author{Cristiano Alves}
+\date{\today}
+
+\begin{document}
+	
+	\maketitle
+	\thispagestyle{empty}
+	\vspace{2cm}
+	
+	\begin{center}
+		\textbf{Proposta de Livro-Texto}
+	\end{center}
+	
+	\section{Justificativa e Descrição da Obra}
+	
+	A modelagem computacional de \emph{qubits} baseados em pontos quânticos (PQs) tornou-se uma competência indispensável para o progresso da computação quântica. Contudo, a maioria dos códigos de estrutura eletrônica impõe curvas de aprendizado íngremes ou custos de licenciamento proibitivos, afastando estudantes e pesquisadores que desejam iniciar na área. O \textbf{PySCF} (Python-based Simulations of Chemistry Framework) rompe essa barreira ao oferecer uma plataforma aberta, gratuita e integralmente programável em Python. Ainda assim, mesmo o PySCF pode intimidar quem nunca operou um código de química quântica.
+	
+	Este livro nasce da convicção de que é perfeitamente possível ensinar PySCF \textbf{do zero absoluto} e, simultaneamente, conduzir o leitor até a simulação completa de \emph{qubits} reais. A obra adota uma abordagem \emph{hands-on}: cada conceito de mecânica quântica e cada funcionalidade do PySCF são apresentados por meio de exemplos práticos que convergem para um \textbf{projeto longitudinal único} --- a construção passo a passo de um modelo de \emph{qubit} de spin em silício dopado com fósforo (Si:P). Começando com o primeiro comando \texttt{import pyscf}, o leitor ergue, capítulo a capítulo, um fluxo de trabalho que culmina na extração do acoplamento hiperfino, do tensor \emph{g}, do acoplamento de troca entre \emph{qubits} e da estimativa de tempos de descoerência. Ao final, o leitor não apenas domina o PySCF, como possui um \emph{pipeline} computacional reprodutível e a intuição física necessária para projetar e analisar PQs voltados à informação quântica.
+	
+	\section{Público-Alvo}
+	
+	\begin{itemize}
+		\item Estudantes de graduação avançada e pós-graduação em Física, Química, Ciência dos Materiais e Engenharia Elétrica \textbf{sem experiência prévia com PySCF}.
+		\item Pesquisadores experimentais que desejam complementar suas investigações com simulações de primeiros princípios, mesmo partindo do zero computacional.
+		\item Docentes que buscam um texto didático, autocontido e baseado exclusivamente em ferramentas gratuitas.
+	\end{itemize}
+	
+	\textbf{Pré-requisitos mínimos:} conhecimentos básicos de Mecânica Quântica (equação de Schrödinger, átomo de hidrogênio), noções elementares de estado sólido (bandas, massa efetiva) e familiaridade introdutória com Python (variáveis, listas, \emph{loops}, funções). O livro revisa esses conceitos sempre que necessário, assegurando que nenhum leitor fique para trás.
+	
+	\section{Objetivos de Aprendizagem}
+	
+	Ao concluir a obra, o leitor será capaz de:
+	
+	\begin{enumerate}[label=\arabic*.]
+		\item Instalar e utilizar o PySCF, compreendendo a estrutura de um cálculo, o papel dos objetos fundamentais (\texttt{Mole}, \texttt{SCF}, \texttt{DFT}) e as boas práticas de programação reprodutível.
+		\item Explicar os fundamentos dos métodos Hartree-Fock, DFT e pós-Hartree-Fock, sabendo escolher bases, funcionais e níveis de teoria adequados a problemas de nanomateriais.
+		\item Construir modelos atômicos de pontos quânticos semicondutores (Si, GaAs, CdSe, defeitos) e calcular suas propriedades eletrônicas e ópticas.
+		\item Extrair parâmetros essenciais para \emph{qubits} de spin: acoplamento hiperfino, tensor \emph{g}, acoplamento spin-órbita e energia de troca \emph{J}.
+		\item Simular o controle elétrico de \emph{qubits} acoplados e quantificar os efeitos de descoerência devida a spins nucleares, integrando os resultados em Hamiltonianos efetivos.
+		\item Desenvolver, ao longo do livro, um projeto de pesquisa simulado que culmina em um relatório científico e uma apresentação, vivenciando o ciclo completo da modelagem computacional.
+	\end{enumerate}
+	
+	\section{Estrutura da Obra (Sumário Detalhado)}
+	
+	A obra está organizada em cinco partes, que entrelaçam o ensino progressivo de PySCF com a física dos pontos quânticos. Um \textbf{Projeto Âncora} transversal permeia todos os capítulos e é detalhado em seções específicas.
+	
+	\subsection*{Parte 0 -- Preparando o Laboratório Computacional}
+	
+	\textbf{Capítulo 1 -- Python Essencial para Química Quântica}
+	\begin{itemize}
+		\item Variáveis, listas, dicionários e \emph{arrays} NumPy
+		\item Laços, funções e módulos: a lógica dos scripts
+		\item Ambientes de desenvolvimento: Jupyter Notebook e Google Colab
+		\item Instalação do PySCF (Windows, Linux, macOS, Colab)
+	\end{itemize}
+	
+	\textbf{Capítulo 2 -- O Primeiro Cálculo com PySCF}
+	\begin{itemize}
+		\item Definindo uma molécula: o objeto \texttt{Mole}
+		\item O que é uma base? Tipos, contrações e palavras-chave
+		\item Executando um cálculo Hartree-Fock: objeto \texttt{SCF}
+		\item Interpretando a saída: energia total, convergência, orbitais
+		\item \textbf{Mãos à obra:} cálculo da energia do átomo de hidrogênio e da molécula H$_2$
+	\end{itemize}
+	
+	\textbf{Projeto Âncora -- Etapa 0:} Construção do \emph{notebook} mestre, primeiro cálculo do átomo de silício.
+	
+	\subsection*{Parte I -- Estrutura Eletrônica de Pontos Quânticos}
+	
+	\textbf{Capítulo 3 -- Do Átomo ao Nanocristal: Construindo um Ponto Quântico}
+	\begin{itemize}
+		\item Confinamento quântico e o modelo da partícula na esfera
+		\item Gerando geometrias de aglomerados de Si e passivação com H
+		\item Inserindo um doador: o sistema Si:P
+		\item \textbf{Mãos à obra:} construção e visualização 3D do nanocristal de Si:P de 1,5 nm
+	\end{itemize}
+	
+	\textbf{Capítulo 4 -- Hartree-Fock e o Diagrama de Orbitais do Ponto Quântico}
+	\begin{itemize}
+		\item Formalismo SCF aplicado a sistemas com muitos elétrons
+		\item Controle de convergência, \emph{guess} inicial, monitoramento
+		\item Energias orbitais, HOMO, LUMO e o \emph{gap} de confinamento
+		\item \textbf{Mãos à obra:} varredura do \emph{gap} versus tamanho do nanocristal; análise gráfica com Matplotlib
+	\end{itemize}
+	\textbf{Projeto Âncora -- Etapa 1:} obtenção do orbital doador e do \emph{gap} eletrônico.
+	
+	\textbf{Capítulo 5 -- Teoria do Funcional da Densidade para Semicondutores}
+	\begin{itemize}
+		\item Equações de Kohn-Sham e funcionais de troca-correlação (LDA, PBE, HSE06)
+		\item Importância dos híbridos para correção de \emph{gaps}
+		\item Propriedades ópticas: TD-DFT e espectro UV-Vis
+		\item \textbf{Mãos à obra:} comparação de funcionais para a energia de ligação do elétron doador; simulação de absorção do Si:P
+	\end{itemize}
+	
+	\subsection*{Parte II -- Parâmetros Magnéticos e o Qubit Individual}
+	
+	\textbf{Capítulo 6 -- Acoplamento Hiperfino e Spin Nuclear}
+	\begin{itemize}
+		\item Hamiltonianos de spin efetivo: o elétron doador e o núcleo de $^{31}$P
+		\item Operador de contato de Fermi e cálculo com PySCF
+		\item Constante hiperfina \emph{A}: dependência com o tamanho do aglomerado
+		\item \textbf{Mãos à obra:} extração do tensor hiperfino e comparação com o valor experimental (117,53 MHz)
+	\end{itemize}
+	\textbf{Projeto Âncora -- Etapa 2:} primeiro parâmetro do \emph{qubit} de spin.
+	
+	\textbf{Capítulo 7 -- Tensor \emph{g} e Espectroscopia de Spin Eletrônico}
+	\begin{itemize}
+		\item Resposta a campo magnético: efeito Zeeman e acoplamento spin-órbita
+		\item Cálculo do tensor \emph{g} com DFT de resposta linear
+		\item Previsão do espectro EPR do doador isolado
+		\item \textbf{Mãos à obra:} cálculo de \emph{g} e montagem do Hamiltoniano de spin único
+	\end{itemize}
+	
+	\subsection*{Parte III -- Qubits Acoplados e Controle Elétrico}
+	
+	\textbf{Capítulo 8 -- Acoplamento de Troca em Duplos Doadores}
+	\begin{itemize}
+		\item Estados singleto e tripleto: DFT de quebra de simetria (\emph{broken symmetry})
+		\item Cálculo de $J = E(\text{T}) - E(\text{S})$ em função da distância doador-doador
+		\item Ajuste exponencial e mecanismo de troca mediada pela matriz de Si
+		\item \textbf{Mãos à obra:} varredura de $J(d)$ para $d = 12$--$25$\,\AA
+	\end{itemize}
+	\textbf{Projeto Âncora -- Etapa 3:} obtenção da curva $J(d)$.
+	
+	\textbf{Capítulo 9 -- Controle por Campo Elétrico e a Porta \emph{SWAP}}
+	\begin{itemize}
+		\item Aplicação de campo elétrico finito no PySCF
+		\item Mapa $J(d, E)$ e o ponto de anticruzamento
+		\item Evolução temporal e simulação da porta $\sqrt{\text{SWAP}}$
+		\item \textbf{Mãos à obra:} extração da matriz de operação lógica e cálculo da fidelidade
+	\end{itemize}
+	
+	\subsection*{Parte IV -- Descoerência e Integração Multi-Escala}
+	
+	\textbf{Capítulo 10 -- Ruído de Spins Nucleares e Tempo de Descoerência}
+	\begin{itemize}
+		\item O banho de $^{29}$Si em silício natural
+		\item Cálculo dos acoplamentos hiperfinos dos núcleos vizinhos
+		\item Estimativa de $T_2^*$ via modelo de Hahn echo
+		\item \textbf{Mãos à obra:} distribuição de acoplamentos e envelope de decaimento da coerência
+	\end{itemize}
+	\textbf{Projeto Âncora -- Etapa 4:} comparação $T_2^*$ para Si natural vs.\ Si-28 isotopicamente puro.
+	
+	\textbf{Capítulo 11 -- Além do PySCF: Conectando com Modelos de Rede}
+	\begin{itemize}
+		\item Exportando $J$ e níveis de energia para \emph{tight-binding} (Kwant)
+		\item Simulando uma cadeia de 10 doadores
+		\item Perspectivas multi-escala e correções de muitos corpos
+		\item \textbf{Mãos à obra:} acoplamento PySCF-Kwant e análise do transporte de informação quântica
+	\end{itemize}
+	
+	\subsection*{Parte V -- Síntese e Apresentação de Resultados}
+	
+	\textbf{Capítulo 12 -- O Projeto Âncora Consolidado}
+	\begin{itemize}
+		\item Integração de todos os \emph{notebooks} em um repositório único e reprodutível
+		\item Redação do relatório final (estilo artigo científico)
+		\item Preparação da apresentação oral do projeto
+		\item \textbf{Mãos à obra:} entrega do \emph{pipeline} completo e defesa simulada
+	\end{itemize}
+	
+	\section{O Projeto Âncora: Do Átomo ao Qubit em Si:P (Detalhamento)}
+	
+	O \textbf{Projeto Âncora} é a espinha dorsal do livro. Ele é introduzido na Parte 0 e se desenvolve paralelamente aos capítulos, com etapas claramente sinalizadas. O leitor que nunca usou PySCF inicia a jornada criando um \emph{notebook} vazio e digitando \texttt{import pyscf}; ao final, terá executado os seguintes passos:
+	
+	\begin{enumerate}[label=\textbf{Etapa \arabic*:},leftmargin=*]
+		\item Instalação do PySCF, primeiro cálculo do átomo de silício.
+		\item Construção do nanocristal de Si passivado com H, inserção do doador de fósforo, cálculo Hartree-Fock e obtenção do orbital do doador.
+		\item Cálculo DFT do mesmo sistema, varredura do \emph{gap} HOMO-LUMO e simulação do espectro UV-Vis.
+		\item Extração do acoplamento hiperfino de $^{31}$P e do tensor \emph{g}, montagem do Hamiltoniano de spin do \emph{qubit} único.
+		\item Modelagem do duplo doador, cálculo do acoplamento de troca $J(d)$ e construção do mapa $J(d, E)$ sob campo elétrico.
+		\item Simulação da porta lógica $\sqrt{\text{SWAP}}$ e avaliação da fidelidade.
+		\item Cálculo dos acoplamentos hiperfinos dos núcleos de $^{29}$Si, estimativa de $T_2^*$ e comparação do desempenho do \emph{qubit} em silício natural e isotopicamente purificado.
+		\item Exportação dos parâmetros para um modelo \emph{tight-binding} de cadeia de doadores.
+		\item Consolidação em um repositório reprodutível, redação de mini-artigo e apresentação.
+	\end{enumerate}
+	
+	Cada etapa é acompanhada de células de código comentadas, gráficos esperados e dicas de depuração, garantindo que o leitor avance mesmo sem conhecimento prévio de PySCF.
+	
+	\section{Diferenciais da Obra}
+	
+	\begin{itemize}
+		\item \textbf{Do zero absoluto ao \emph{qubit} funcional:} nenhuma experiência anterior com PySCF é pressuposta; o livro começa com a instalação e os primeiros comandos, formando um arco completo de aprendizado.
+		\item \textbf{Projeto longitudinal unificador:} o leitor não apenas aprende conceitos isolados -- ele constrói um produto final de pesquisa, vivenciando o método científico de forma guiada.
+		\item \textbf{Totalmente baseado em \emph{software} livre:} PySCF, Python, Jupyter -- tudo executável gratuitamente, inclusive em nuvem (Google Colab).
+		\item \textbf{Conexão explícita com o laboratório:} cada resultado computacional é comparado com valores experimentais (hiperfino, \emph{g}, espectros), desenvolvendo o senso crítico do leitor.
+		\item \textbf{Reprodutibilidade como princípio:} todos os \emph{notebooks} e arquivos de geometria estarão disponíveis em repositório GitHub, permitindo que o leitor replique e adapte os exemplos para seus próprios sistemas de interesse.
+		\item \textbf{Material suplementar rico:} vídeos de demonstração, soluções de exercícios para docentes e uma comunidade de suporte via fórum.
+	\end{itemize}
+	
+	\section{Especificações Técnicas}
+	
+	\begin{itemize}
+		\item \textbf{Páginas estimadas:} 380--420 (formato 17$\times$24 cm).
+		\item \textbf{Material complementar online:} repositório com todos os \emph{notebooks} do projeto âncora e dos exemplos, arquivos de geometria, guias de instalação e vídeos passo a passo.
+		\item \textbf{Software requerido:} Python 3.10+, PySCF 2.3+, NumPy, SciPy, Matplotlib, Jupyter; opcionalmente Avogadro/VMD e Kwant. Ambiente completamente reproduzível via arquivo \texttt{environment.yml} ou link para Google Colab com configuração pré-carregada.
+	\end{itemize}
+	
+	\section{Cronograma de Produção}
+	
+	\begin{itemize}
+		\item \textbf{Amostra (Parte 0 + 1ª etapa do Projeto Âncora):} 5 meses após contrato.
+		\item \textbf{Manuscrito completo:} 14 meses.
+		\item \textbf{Revisão técnica e editorial:} 3 meses.
+		\item \textbf{Publicação prevista:} 18 meses.
+	\end{itemize}
+	
+	\section{Público e Potencial de Mercado}
+	
+	A expansão dos investimentos em tecnologias quânticas gera demanda urgente por profissionais capazes de modelar \emph{qubits} com rigor atômico. Este livro serve como texto-base para disciplinas de pós-graduação em computação quântica, nanociência e química quântica computacional, além de ser manual de referência para grupos de pesquisa e empresas de \emph{hardware} quântico. A abordagem em português e a curva de aprendizado suave o tornam particularmente atraente para países lusófonos e para a formação de uma nova geração de cientistas.
+	
+	\section{Sobre o Autor}
+	
+	\textbf{Cristiano Alves} [inserir biografia resumida: titulação, experiência em química quântica computacional, docência e/ou pesquisa com pontos quânticos e PySCF, publicações relevantes, etc.].
+	\vspace{1cm}
+	
+	\begin{center}
+		\rule{0.5\textwidth}{0.4pt}\\[0.3cm]
+		\textbf{Contato:} [e-mail] $\mid$ [telefone]
+	\end{center}
+	
+	\vspace{0.5cm}
+	\noindent\textit{Esta obra oferece a rota mais acolhedora e completa para transformar o iniciante absoluto em um modelador de qubits capaz de transitar da teoria fundamental às aplicações de fronteira, usando exclusivamente ferramentas abertas e colaborativas.}
+	
+\end{document}
