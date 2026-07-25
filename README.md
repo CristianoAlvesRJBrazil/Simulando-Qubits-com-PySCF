@@ -66,6 +66,9 @@ nada — clique no *badge*:
 | 1 — Python Essencial para Química Quântica | [`ipynb`](notebooks/Capitulo_01_Python_Essencial.ipynb) | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/CristianoAlvesRJBrazil/Simulando-Qubits-com-PySCF/blob/main/notebooks/Capitulo_01_Python_Essencial.ipynb) |
 | 2 — O Primeiro Cálculo com PySCF | [`ipynb`](notebooks/Capitulo_02_Primeiro_Calculo_PySCF.ipynb) | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/CristianoAlvesRJBrazil/Simulando-Qubits-com-PySCF/blob/main/notebooks/Capitulo_02_Primeiro_Calculo_PySCF.ipynb) |
 | 3 — Do Átomo ao Nanocristal | [`ipynb`](notebooks/Capitulo_03_Do_Atomo_ao_Nanocristal.ipynb) | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/CristianoAlvesRJBrazil/Simulando-Qubits-com-PySCF/blob/main/notebooks/Capitulo_03_Do_Atomo_ao_Nanocristal.ipynb) |
+| 4 — Hartree-Fock e o Diagrama de Orbitais ⏱️ | [`ipynb`](notebooks/Capitulo_04_Hartree_Fock_Orbitais.ipynb) | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/CristianoAlvesRJBrazil/Simulando-Qubits-com-PySCF/blob/main/notebooks/Capitulo_04_Hartree_Fock_Orbitais.ipynb) |
+
+<sub>⏱️ executa cálculos Hartree-Fock reais; a varredura do *gap* leva alguns minutos.</sub>
 
 ---
 
