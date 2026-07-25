@@ -1,0 +1,564 @@
+%=====================================================================
+\chapter{Do Átomo ao Nanocristal: Construindo um Ponto Quântico}
+\label{cap:nanocristal}
+%=====================================================================
+
+Um átomo de silício isolado, como o que calculamos no Capítulo~2, é apenas o
+tijolo. O silício \emph{sólido} --- o material dos processadores --- é um cristal
+com $\sim 10^{22}$ átomos por centímetro cúbico e um \emph{gap} de $1{,}12$~eV. Entre
+esses dois extremos existe um território fascinante: o dos aglomerados de dezenas
+a milhares de átomos, os \textbf{pontos quânticos} (PQs), onde as propriedades não
+são nem as do átomo nem as do sólido, mas algo intermediário e --- crucialmente
+--- \emph{sintonizável pelo tamanho}.
+
+Este capítulo é sobre construir esse objeto. Ao final, você terá um arquivo de
+geometria contendo um nanocristal de silício de $1{,}5$~nm, passivado com
+hidrogênio e contendo um único átomo de fósforo no centro: o sistema Si:P que
+hospedará nosso \qubit{}.
+
+%---------------------------------------------------------------------
+\section{Confinamento Quântico: Por Que o Tamanho Importa}
+\label{sec:confinamento}
+%---------------------------------------------------------------------
+
+Comecemos pela física. Por que um pedaço pequeno de silício se comporta de forma
+diferente de um pedaço grande do \emph{mesmo} material?
+
+A resposta é o \textbf{confinamento quântico}. Num sólido macroscópico, os elétrons
+se movem quase livremente e seus níveis de energia formam bandas contínuas. Mas
+se aprisionarmos um elétron numa região de dimensão $R$ comparável ao seu
+comprimento de onda de de~Broglie, os níveis se \emph{discretizam} e se
+\emph{afastam}. O sistema passa a lembrar um átomo gigante --- daí o apelido
+``átomo artificial''.
+
+\subsection{O modelo da partícula na esfera}
+
+O modelo mais simples que captura o fenômeno é o de uma partícula numa caixa
+esférica de paredes infinitas e raio $R$. Resolvendo a equação de Schrödinger
+nesse potencial, a energia do estado fundamental é
+\begin{equation}
+  E_1 = \frac{\hbar^2 \pi^2}{2 m R^2}.
+  \label{eq:esfera}
+\end{equation}
+
+\noindent
+A dependência $E_1 \propto 1/R^2$ é a assinatura do confinamento: \textbf{quanto
+menor a partícula, maior a energia}. Reduzir o raio pela metade quadruplica a
+energia de confinamento. É essa lei que permite ``sintonizar'' um ponto quântico
+--- é por isso que nanocristais de CdSe emitem do vermelho ao azul apenas variando
+seu diâmetro.
+
+\begin{caixanota}
+\textbf{Massa efetiva.} Na Equação~\ref{eq:esfera}, $m$ não é a massa do elétron
+livre, mas a \textbf{massa efetiva} $m^*$ --- um artifício que absorve o efeito do
+potencial periódico do cristal sobre o portador. No silício, $m^*_e \approx
+0{,}26\,m_0$ para o elétron e $m^*_h \approx 0{,}38\,m_0$ para o buraco. Como $m^*
+< m_0$, os efeitos de confinamento no Si são \emph{mais} pronunciados do que a
+intuição de partícula livre sugeriria.
+\end{caixanota}
+
+\subsection{A equação de Brus}
+
+Aplicando o modelo a um par elétron-buraco e acrescentando sua atração
+coulombiana, chega-se à célebre \textbf{equação de Brus} para o \emph{gap} de um
+nanocristal de raio $R$:
+\begin{equation}
+  E_g(R) \;\simeq\; E_g^{\text{bulk}}
+  \;+\; \frac{\hbar^2\pi^2}{2R^2}\left(\frac{1}{m^*_e}+\frac{1}{m^*_h}\right)
+  \;-\; \frac{1{,}786\,e^2}{4\pi\varepsilon_0 \varepsilon R}.
+  \label{eq:brus}
+\end{equation}
+
+\noindent
+O primeiro termo é o \emph{gap} do material maciço; o segundo é o confinamento
+(sempre positivo, \emph{abrindo} o \emph{gap}); o terceiro é a atração
+elétron-buraco (negativa, \emph{fechando-o} ligeiramente). Vamos avaliá-la
+numericamente para o silício:
+
+\begin{lstlisting}[style=python,caption={A equação de Brus aplicada ao silício.},label={lst:brus}]
+import numpy as np
+
+HB2_2M = 3.80998   # hbar^2/(2 m0), em eV.A^2
+E2_4PE = 14.3996   # e^2/(4 pi eps0), em eV.A
+EG_BULK, ME, MH, EPS = 1.12, 0.26, 0.38, 11.7   # parametros do Si
+
+def gap_brus(diametro_nm):
+    R = diametro_nm * 10 / 2                       # raio em angstrom
+    confinamento = HB2_2M * np.pi**2 / R**2 * (1/ME + 1/MH)
+    coulomb = -1.786 * E2_4PE / (EPS * R)
+    return EG_BULK + confinamento + coulomb
+
+for d in [1.0, 1.5, 2.0, 3.0, 5.0, 10.0]:
+    print("D = %5.1f nm -> gap = %6.3f eV" % (d, gap_brus(d)))
+\end{lstlisting}
+
+\begin{lstlisting}[style=console]
+D =   1.0 nm -> gap = 10.424 eV
+D =   1.5 nm -> gap =  5.157 eV
+D =   2.0 nm -> gap =  3.336 eV
+D =   3.0 nm -> gap =  2.056 eV
+D =   5.0 nm -> gap =  1.422 eV
+D =  10.0 nm -> gap =  1.173 eV
+\end{lstlisting}
+
+\noindent
+Duas leituras. A boa notícia: para diâmetros grandes, o \emph{gap} converge
+suavemente para o valor do sólido ($1{,}12$~eV) --- o modelo é consistente. A má
+notícia: para $1{,}0$~nm ele prevê $10{,}4$~eV, um valor absurdo (nanocristais de
+Si desse tamanho exibem \emph{gaps} de $3$--$4$~eV).
+
+\begin{caixaatencao}
+\textbf{Onde a aproximação de massa efetiva falha.} A Equação~\ref{eq:brus}
+pressupõe que o nanocristal ainda ``sente'' como um cristal infinito, com bandas
+bem definidas e paredes de potencial infinitas. Para $R$ de poucos nanômetros
+essa premissa desmorona: a superfície domina, o conceito de massa efetiva perde
+sentido e o modelo superestima grosseiramente o confinamento. \textbf{É
+precisamente por isso que precisamos de um cálculo atomístico} --- e é isso que o
+\pyscf{} nos dará. Modelos analíticos fornecem intuição e ordem de grandeza;
+números confiáveis exigem resolver a estrutura eletrônica átomo a átomo.
+\end{caixaatencao}
+
+%---------------------------------------------------------------------
+\section{A Rede do Silício: a Estrutura Diamante}
+\label{sec:rede}
+%---------------------------------------------------------------------
+
+Para construir o nanocristal atomisticamente, precisamos primeiro reproduzir a
+rede do silício cristalino. O Si cristaliza na \textbf{estrutura diamante}: uma
+rede cúbica de face centrada (FCC) com uma base de dois átomos, em
+$(0,0,0)$ e $(\tfrac14,\tfrac14,\tfrac14)$ em coordenadas da célula. O resultado é
+uma célula cúbica convencional com \textbf{8 átomos}, parâmetro de rede
+$a = 5{,}431$~Å, na qual cada átomo tem exatamente \textbf{4 vizinhos} em arranjo
+tetraédrico, separados por
+\[
+  d_{\mathrm{Si-Si}} = \frac{\sqrt{3}}{4}\,a = 2{,}352~\text{Å}.
+\]
+
+\noindent
+Gerar essa rede em \python{} é direto: listamos as 8 posições da base e replicamo-las
+ao longo de $n \times n \times n$ células.
+
+\begin{lstlisting}[style=python,caption={Gerando a rede diamante do silício.},label={lst:rede}]
+import numpy as np
+
+A_SI, D_SIH, CORTE = 5.431, 1.48, 2.6   # parametros em angstrom
+
+def rede_diamante(n_celulas):
+    """Gera as posicoes de Si de n x n x n celulas da rede diamante."""
+    base = np.array([[0, 0, 0], [.25, .25, .25], [0, .5, .5], [.25, .75, .75],
+                     [.5, 0, .5], [.75, .25, .75], [.5, .5, 0], [.75, .75, .25]])
+    celulas = np.array([[i, j, k] for i in range(n_celulas)
+                        for j in range(n_celulas) for k in range(n_celulas)])
+    return (celulas[:, None, :] + base[None, :, :]).reshape(-1, 3) * A_SI
+\end{lstlisting}
+
+\begin{caixadica}
+A expressão \code{celulas[:, None, :] + base[None, :, :]} é um exemplo de
+\emph{broadcasting} do \numpy{}: ela soma cada uma das $n^3$ translações de célula
+a cada uma das 8 posições da base, produzindo todas as combinações de uma só vez,
+sem laços aninhados. O \code{.reshape(-1, 3)} achata o resultado numa lista de
+coordenadas. Domine esse padrão --- ele reaparece sempre que geometrias precisam
+ser construídas.
+\end{caixadica}
+
+%---------------------------------------------------------------------
+\section{Do Cristal ao Nanocristal: Corte e Passivação}
+\label{sec:corte}
+%---------------------------------------------------------------------
+
+Com a rede infinita em mãos, o nanocristal nasce em três etapas.
+
+\subsection{Etapa 1: o corte esférico}
+
+Escolhemos um centro e mantemos apenas os átomos dentro de um raio $R$. Simples ---
+mas o resultado bruto tem um problema grave.
+
+\subsection{Etapa 2: o problema das ligações pendentes}
+
+Ao cortar o cristal, os átomos da superfície perdem vizinhos. Cada vizinho
+ausente deixa uma \textbf{ligação pendente} (\emph{dangling bond}): um orbital
+semipreenchido, altamente reativo. Do ponto de vista eletrônico, ligações
+pendentes introduzem \textbf{estados dentro do \emph{gap}} --- níveis de energia
+espúrios que contaminam justamente a região que queremos estudar, mascarando os
+estados do doador de fósforo.
+
+A solução, adotada tanto na simulação quanto no laboratório, é a
+\textbf{passivação}: saturar cada ligação pendente com um átomo de hidrogênio,
+posicionado ao longo da direção do vizinho que faltou, a $1{,}48$~Å (o
+comprimento da ligação Si--H). O hidrogênio ``fecha'' quimicamente a superfície e
+empurra os estados superficiais para longe do \emph{gap}.
+
+\begin{caixanota}
+\textbf{Como achar a direção certa.} Um erro comum é usar as quatro direções
+tetraédricas $(\pm1,\pm1,\pm1)$ fixas para todos os átomos. Isso falha porque a
+rede diamante tem \emph{duas} sub-redes, com tetraedros de orientações opostas.
+A solução robusta é outra: para cada átomo mantido, procuramos seus vizinhos na
+rede \emph{completa} (antes do corte); todo vizinho que ficou de fora indica
+exatamente a direção onde um hidrogênio deve entrar. O método funciona para
+qualquer átomo, em qualquer sub-rede, sem casos especiais.
+\end{caixanota}
+
+\subsection{Etapa 3: removendo átomos instáveis}
+
+O corte esférico às vezes deixa átomos ligados ao aglomerado por apenas uma
+ligação --- ou nenhuma. Passivá-los produziria espécies quimicamente absurdas
+(um Si com três hidrogênios pendurado na superfície). Removemos iterativamente
+todo Si com menos de dois vizinhos, repetindo até a estrutura estabilizar.
+
+Juntando tudo:
+
+\begin{lstlisting}[style=python,caption={Construindo o nanocristal passivado.},label={lst:construir}]
+def construir_nanocristal(diametro_nm, n_celulas=8, min_viz=2):
+    """Corta uma esfera da rede, remove atomos instaveis e passiva com H."""
+    raio = diametro_nm * 10 / 2
+    rede = rede_diamante(n_celulas)
+    rede = rede - rede.mean(axis=0)             # centraliza na origem
+    dentro = np.linalg.norm(rede, axis=1) <= raio    # corte esferico
+
+    while True:                                  # remove Si subcoordenados
+        idx = np.where(dentro)[0]
+        pos = rede[idx]
+        nviz = [np.sum((np.linalg.norm(pos - p, axis=1) > 0.1) &
+                       (np.linalg.norm(pos - p, axis=1) < CORTE)) for p in pos]
+        ruins = idx[np.array(nviz) < min_viz]
+        if len(ruins) == 0:
+            break
+        dentro[ruins] = False
+
+    si = rede[dentro]
+    hidrogenios = []                             # passiva ligacoes pendentes
+    for p in si:
+        d = np.linalg.norm(rede - p, axis=1)
+        for j in np.where((d > 0.1) & (d < CORTE))[0]:
+            if not dentro[j]:                    # vizinho que ficou de fora
+                u = (rede[j] - p) / d[j]         # direcao unitaria
+                hidrogenios.append(p + D_SIH * u)
+    return si, np.array(hidrogenios)
+\end{lstlisting}
+
+\noindent
+Vejamos o que essa função produz para diferentes tamanhos:
+
+\begin{lstlisting}[style=python]
+for d in [1.0, 1.2, 1.5, 2.0]:
+    si, h = construir_nanocristal(d)
+    n_elec = 14 * len(si) + len(h)
+    print("D = %.1f nm -> Si%dH%d (%d atomos, %d eletrons)"
+          % (d, len(si), len(h), len(si) + len(h), n_elec))
+\end{lstlisting}
+
+\begin{lstlisting}[style=console]
+D = 1.0 nm -> Si22H28 (50 atomos, 336 eletrons)
+D = 1.2 nm -> Si36H40 (76 atomos, 544 eletrons)
+D = 1.5 nm -> Si72H64 (136 atomos, 1072 eletrons)
+D = 2.0 nm -> Si202H138 (340 atomos, 2966 eletrons)
+\end{lstlisting}
+
+\begin{table}[h]
+  \centering
+  \caption{Nanocristais de Si passivados gerados pelo nosso código.}
+  \label{tab:nanocristais}
+  \begin{tabular}{lccc}
+    \toprule
+    \textbf{Diâmetro} & \textbf{Fórmula} & \textbf{Átomos} & \textbf{Elétrons} \\
+    \midrule
+    $1{,}0$~nm & Si$_{22}$H$_{28}$   & 50  & 336 \\
+    $1{,}2$~nm & Si$_{36}$H$_{40}$   & 76  & 544 \\
+    $1{,}5$~nm & Si$_{72}$H$_{64}$   & 136 & 1072 \\
+    $2{,}0$~nm & Si$_{202}$H$_{138}$ & 340 & 2966 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\noindent
+Note como o custo explode: dobrar o diâmetro multiplica o número de elétrons por
+quase nove. Essa é a realidade dura da química quântica --- e a razão pela qual
+escolhemos $1{,}5$~nm como compromisso entre realismo físico e viabilidade
+computacional.
+
+\subsection{Validando a estrutura}
+
+Nunca confie numa geometria gerada por código sem inspecioná-la. Três verificações
+baratas detectam a maioria dos erros:
+
+\begin{lstlisting}[style=python,caption={Validando o nanocristal.},label={lst:validar}]
+si, h = construir_nanocristal(1.5)
+
+# 1. Todo Si deve ter exatamente 4 ligacoes (Si vizinhos + H)
+coord = []
+for p in si:
+    n_si = np.sum((np.linalg.norm(si - p, axis=1) > 0.1) &
+                  (np.linalg.norm(si - p, axis=1) < CORTE))
+    n_h = np.sum(np.linalg.norm(h - p, axis=1) < 1.6)
+    coord.append(n_si + n_h)
+print("Coordenacao: min=%d max=%d" % (min(coord), max(coord)))
+
+# 2. Comprimentos de ligacao corretos?
+d_sisi = np.linalg.norm(si[:, None] - si[None, :], axis=2)
+print("Menor Si-Si: %.3f A" % d_sisi[d_sisi > 0.1].min())
+print("Menor Si-H : %.3f A" % np.linalg.norm(si[:, None] - h[None, :], axis=2).min())
+\end{lstlisting}
+
+\begin{lstlisting}[style=console]
+Coordenacao: min=4 max=4
+Menor Si-Si: 2.352 A
+Menor Si-H : 1.480 A
+\end{lstlisting}
+
+\noindent
+Todos os 72 átomos de silício estão tetracoordenados --- \textbf{nenhuma ligação
+pendente sobrou} --- e os comprimentos de ligação são exatamente os esperados.
+A estrutura está quimicamente sã.
+
+\begin{caixaatencao}
+\textbf{Uma geometria idealizada.} Nosso nanocristal foi recortado da rede
+\emph{perfeita}, sem relaxamento. Átomos reais na superfície se reacomodam, e
+alguns hidrogênios vizinhos ficam, no nosso modelo, a apenas $\sim 1{,}4$~Å uns
+dos outros --- mais próximos do que seria confortável. Para resultados de
+publicação, o passo seguinte seria uma \emph{otimização de geometria}, relaxando
+as posições até minimizar a energia. Neste livro manteremos a geometria ideal por
+clareza e custo, mas registre a limitação: ela afeta sobretudo os estados de
+superfície, e menos o estado do doador no centro --- que é o nosso alvo.
+\end{caixaatencao}
+
+%---------------------------------------------------------------------
+\section{Inserindo o Doador: o Sistema Si:P}
+\label{sec:doador}
+%---------------------------------------------------------------------
+
+Chegamos ao coração do Projeto Âncora. Até aqui temos silício puro --- um
+semicondutor, mas não um \qubit{}. A mágica acontece ao substituir \emph{um único}
+átomo de Si por um átomo de \textbf{fósforo}.
+
+O raciocínio é elegantemente simples. O silício tem 4 elétrons de valência e usa
+todos os quatro nas ligações tetraédricas. O fósforo, seu vizinho na tabela
+periódica, tem \textbf{5}. Colocado num sítio da rede do Si, ele gasta quatro
+elétrons nas ligações e \textbf{sobra um}. Esse elétron excedente fica fracamente
+ligado ao caroço P$^+$, orbitando-o numa órbita difusa que lembra a de um átomo de
+hidrogênio --- um ``hidrogênio artificial'' embutido no cristal.
+
+\textbf{Esse elétron solitário é o nosso \qubit{}.} Seu spin --- para cima ou para
+baixo --- é o bit quântico que desejamos controlar, e é a origem de todas as
+grandezas que calcularemos nas Partes~II e~III: o acoplamento hiperfino com o
+núcleo de $^{31}$P, o tensor $g$, o acoplamento de troca com um segundo doador.
+
+Em código, a substituição é trivial --- basta trocar o rótulo do átomo mais
+próximo do centro:
+
+\begin{lstlisting}[style=python,caption={Inserindo o doador de fósforo.},label={lst:doador}]
+def inserir_doador(si):
+    """Devolve o indice do Si mais proximo do centro, a ser trocado por P."""
+    return int(np.argmin(np.linalg.norm(si, axis=1)))
+
+si, h = construir_nanocristal(1.5)
+idx_p = inserir_doador(si)
+
+n_elec = 14 * (len(si) - 1) + 15 + len(h)   # Si tem Z=14; P tem Z=15
+print("Sistema: Si%d P1 H%d" % (len(si) - 1, len(h)))
+print("Eletrons: %d  ->  spin (desemparelhados) = %d" % (n_elec, n_elec % 2))
+\end{lstlisting}
+
+\begin{lstlisting}[style=console]
+Sistema: Si71 P1 H64
+Eletrons: 1073  ->  spin (desemparelhados) = 1
+\end{lstlisting}
+
+\begin{caixanota}
+\textbf{O número ímpar que anuncia o \qubit{}.} Repare no detalhe mais importante
+deste capítulo: o sistema tem \textbf{1073 elétrons --- um número ímpar}. Num
+nanocristal de silício puro o total seria par, todos os elétrons emparelhados, e o
+sistema teria \code{spin=0}. O fósforo quebra essa paridade. Aquele elétron
+desemparelhado, que nos obrigará a usar \code{spin=1} e métodos de camada aberta
+(ROHF/UHF), não é uma inconveniência técnica: \textbf{é o \qubit{}}. Toda a física
+do resto do livro nasce dessa unidade solitária.
+\end{caixanota}
+
+%---------------------------------------------------------------------
+\section{Mãos à Obra: Construir e Visualizar o Nanocristal}
+\label{sec:maos3}
+%---------------------------------------------------------------------
+
+Vamos reunir as peças, exportar a geometria no formato padrão \code{.xyz} e
+visualizá-la em três dimensões.
+
+\begin{caixamaos}
+\textbf{Objetivo:} gerar o nanocristal de Si:P de $1{,}5$~nm, salvar sua geometria
+e inspecioná-la visualmente.
+
+\vspace{0.4cm}
+\textbf{Passo 1 --- Exportar para o formato XYZ.} O formato \code{.xyz} é o
+esperanto das geometrias moleculares: a primeira linha traz o número de átomos, a
+segunda um comentário livre, e as demais o símbolo e as coordenadas.
+
+\begin{lstlisting}[style=python]
+def para_xyz(si, h, idx_p=None, comentario="nanocristal"):
+    linhas = ["%d" % (len(si) + len(h)), comentario]
+    for i, p in enumerate(si):
+        simbolo = "P" if i == idx_p else "Si"
+        linhas.append("%-2s %10.6f %10.6f %10.6f" % (simbolo, *p))
+    for p in h:
+        linhas.append("%-2s %10.6f %10.6f %10.6f" % ("H", *p))
+    return "\n".join(linhas)
+
+si, h = construir_nanocristal(1.5)
+idx_p = inserir_doador(si)
+xyz = para_xyz(si, h, idx_p, "Si:P 1.5 nm - Projeto Ancora")
+
+with open("SiP_1.5nm.xyz", "w") as f:
+    f.write(xyz)
+
+print("\n".join(xyz.split("\n")[:4]))
+\end{lstlisting}
+
+\begin{lstlisting}[style=console]
+136
+Si:P 1.5 nm - Projeto Ancora
+Si  -6.109875  -3.394375  -0.678875
+Si  -6.109875  -0.678875  -3.394375
+\end{lstlisting}
+
+\vspace{0.3cm}
+\textbf{Passo 2 --- Visualizar em 3D.} A biblioteca \code{py3Dmol} exibe estruturas
+interativas dentro do próprio \emph{notebook} (funciona no Colab e no Jupyter):
+
+\begin{lstlisting}[style=python]
+# !pip install py3Dmol
+import py3Dmol
+
+view = py3Dmol.view(width=600, height=500)
+view.addModel(xyz, 'xyz')
+view.setStyle({'stick': {'radius': 0.12}, 'sphere': {'scale': 0.22}})
+view.zoomTo()
+view.show()
+\end{lstlisting}
+
+Gire a estrutura com o mouse. Você deve ver um aglomerado aproximadamente
+esférico, com o miolo de silício em arranjo tetraédrico regular e uma casca
+externa de hidrogênios. O átomo de fósforo (destacado em cor distinta) está no
+centro --- exatamente onde queremos, o mais longe possível da superfície.
+
+\vspace{0.3cm}
+\textbf{Passo 3 --- Preparar para o PySCF.} A mesma \emph{string} XYZ (sem as duas
+primeiras linhas) alimenta diretamente o objeto \code{Mole}:
+
+\begin{lstlisting}[style=python]
+from pyscf import gto
+
+geometria = "\n".join(xyz.split("\n")[2:])   # descarta cabecalho do xyz
+mol = gto.M(atom=geometria, basis='sto-3g', spin=1)
+
+print("Eletrons: %d | Funcoes de base: %d | spin: %d"
+      % (mol.nelectron, mol.nao, mol.spin))
+\end{lstlisting}
+
+\begin{lstlisting}[style=console]
+Eletrons: 1073 | Funcoes de base: 712 | spin: 1
+\end{lstlisting}
+
+O sistema está pronto para ser calculado --- 712 funções de base é um cálculo
+sério, que executaremos no Capítulo~4.
+\end{caixamaos}
+
+\begin{caixadica}
+Prefere um visualizador externo? O arquivo \code{SiP\_1.5nm.xyz} pode ser aberto
+diretamente no \textbf{Avogadro}, \textbf{VMD} ou \textbf{VESTA} --- todos
+gratuitos. O Avogadro é o mais amigável para iniciantes e permite inclusive
+medir ângulos e distâncias com o mouse, útil para conferir a geometria.
+\end{caixadica}
+
+%---------------------------------------------------------------------
+\begin{caixaancora}
+\textbf{Etapa 1 (parte A) --- A geometria do \qubit{}.}
+
+Você acaba de produzir o objeto físico central deste livro: um nanocristal
+Si$_{71}$P$_1$H$_{64}$ de $1{,}5$~nm, quimicamente saturado, com um doador de
+fósforo no centro e \textbf{um elétron desemparelhado} --- o \qubit{}.
+
+\vspace{0.3cm}
+\textbf{Sua tarefa.} No \emph{notebook} \code{projeto\_ancora\_SiP.ipynb}:
+\begin{enumerate}[leftmargin=*,nosep]
+  \item Acrescente as funções \code{rede\_diamante}, \code{construir\_nanocristal},
+        \code{inserir\_doador} e \code{para\_xyz} numa célula de código
+        (elas serão reutilizadas em todos os capítulos seguintes).
+  \item Gere e salve \code{SiP\_1.5nm.xyz}.
+  \item Execute as validações da Listagem~\ref{lst:validar} e confirme que a
+        coordenação é 4 para todos os Si.
+  \item Registre numa célula de texto: fórmula, número de átomos, número de
+        elétrons e por que o spin é~1.
+\end{enumerate}
+
+\vspace{0.3cm}
+\textbf{A seguir.} No Capítulo~4 submeteremos essa geometria a um cálculo
+Hartree-Fock, localizaremos o \textbf{orbital do doador} entre os 712 orbitais
+moleculares e mediremos o \emph{gap} de confinamento --- comparando-o com os
+$5{,}16$~eV que a equação de Brus previu. A comparação será reveladora.
+\end{caixaancora}
+
+%---------------------------------------------------------------------
+\section*{Resumo do Capítulo}
+\addcontentsline{toc}{section}{Resumo do Capítulo}
+%---------------------------------------------------------------------
+
+\begin{itemize}[leftmargin=*]
+  \item O \textbf{confinamento quântico} discretiza e afasta os níveis de energia
+        quando o material é reduzido à escala nanométrica; a energia de
+        confinamento escala com $1/R^2$.
+  \item A \textbf{equação de Brus} dá uma estimativa analítica do \emph{gap}, mas
+        \textbf{superestima grosseiramente} abaixo de $\sim 2$~nm, pois a
+        aproximação de massa efetiva falha --- o que justifica o cálculo
+        atomístico.
+  \item O silício tem \textbf{estrutura diamante}: $a = 5{,}431$~Å, 8 átomos por
+        célula, 4 vizinhos tetraédricos a $2{,}352$~Å.
+  \item Um nanocristal é obtido por \textbf{corte esférico}, \textbf{remoção de
+        átomos subcoordenados} e \textbf{passivação com hidrogênio}
+        ($d_{\mathrm{Si-H}} = 1{,}48$~Å), que elimina as ligações pendentes e seus
+        estados espúrios no \emph{gap}.
+  \item Sempre \textbf{valide} a geometria: coordenação~4 em todo Si e
+        comprimentos de ligação corretos.
+  \item Substituir um Si por \textbf{fósforo} adiciona um elétron: o sistema
+        Si$_{71}$P$_1$H$_{64}$ tem 1073 elétrons (ímpar) e \code{spin=1}. Esse
+        elétron desemparelhado \textbf{é o \qubit{}}.
+  \item \textbf{Projeto Âncora:} a geometria do nanocristal de Si:P de $1{,}5$~nm
+        está pronta e exportada em \code{SiP\_1.5nm.xyz}.
+\end{itemize}
+
+%---------------------------------------------------------------------
+\section*{Exercícios}
+\addcontentsline{toc}{section}{Exercícios}
+%---------------------------------------------------------------------
+
+\begin{enumerate}[leftmargin=*,label=\textbf{3.\arabic*}]
+  \item \textbf{Escala do confinamento.} Usando a Equação~\ref{eq:esfera} com
+        $m = m_0$, calcule $E_1$ para $R = 5$, $10$ e $20$~Å. Verifique
+        numericamente que dobrar o raio divide a energia por~4.
+
+  \item \textbf{Limite do modelo de Brus.} Avalie \code{gap\_brus} para diâmetros de
+        $0{,}8$ a $6{,}0$~nm e faça um gráfico com Matplotlib. A partir de qual
+        diâmetro a previsão passa a parecer fisicamente razoável (isto é, abaixo
+        de $\sim 4$~eV)?
+
+  \item \textbf{Contagem atômica.} A densidade do Si é $\approx 0{,}0500$
+        átomos/Å$^3$. Estime analiticamente quantos átomos de Si caberiam numa
+        esfera de $1{,}5$~nm de diâmetro e compare com os 72 obtidos pelo código.
+        Explique a diferença.
+
+  \item \textbf{Efeito da passivação.} Modifique \code{construir\_nanocristal} para
+        \emph{não} passivar (devolva uma lista de H vazia) e conte quantas ligações
+        pendentes existiriam no nanocristal de $1{,}5$~nm. Quantos estados
+        espúrios isso poderia introduzir no \emph{gap}?
+
+  \item \textbf{Critério de estabilidade.} Refaça a construção com
+        \code{min\_viz=1} e com \code{min\_viz=3}. Como mudam a fórmula e a razão
+        H/Si? Qual critério lhe parece quimicamente mais defensável?
+
+  \item \textbf{Posição do doador.} Modifique \code{inserir\_doador} para colocar o
+        fósforo num átomo da \emph{superfície} (o mais distante do centro) em vez
+        do centro. Por que essa escolha seria ruim para um \qubit{}? (Pense no que
+        acontece com a função de onda do elétron doador e em sua sensibilidade ao
+        ambiente.)
+
+  \item \textbf{Projeto Âncora.} Gere nanocristais de Si:P de $1{,}0$ e
+        $2{,}0$~nm além do de $1{,}5$~nm. Monte uma tabela com fórmula, número de
+        elétrons e número de funções de base em STO-3G (use \code{mol.nao}).
+        Guarde-a: no Capítulo~4 estudaremos como o \emph{gap} varia com o tamanho.
+\end{enumerate}

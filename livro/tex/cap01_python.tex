@@ -1,0 +1,757 @@
+%=====================================================================
+\chapter{Python Essencial para Química Quântica}
+\label{cap:python}
+%=====================================================================
+
+Todo cálculo que faremos neste livro --- do átomo de hidrogênio isolado ao
+nanocristal de silício com centenas de elétrons --- será orquestrado por scripts
+\python{}. \python{} não é apenas a linguagem em que o \pyscf{} foi escrito; é a
+interface pela qual definiremos moléculas, escolheremos métodos, dispararemos
+cálculos e, sobretudo, analisaremos resultados.
+
+A boa notícia é que você não precisa se tornar um programador profissional. Você
+precisa de um subconjunto pequeno, porém sólido, da linguagem: saber guardar
+valores em variáveis, organizar dados em listas e dicionários, manipular vetores
+e matrizes com \numpy{}, repetir tarefas com laços e encapsular lógica em
+funções. Este capítulo cobre exatamente esse subconjunto --- nem mais, nem menos
+--- sempre com exemplos enraizados na química quântica.
+
+\begin{caixanota}
+Se você já programa em \python{}, sinta-se à vontade para folhear rapidamente as
+Seções~\ref{sec:variaveis} a~\ref{sec:funcoes} e concentrar-se na
+Seção~\ref{sec:numpy} (\numpy{}) e nas Seções~\ref{sec:ambientes}
+e~\ref{sec:instalacao}, sobre ambientes de trabalho e instalação do \pyscf{}.
+\end{caixanota}
+
+%---------------------------------------------------------------------
+\section{Por Que Python (e Por Que do Zero)}
+%---------------------------------------------------------------------
+
+Nas últimas duas décadas, \python{} tornou-se a linguagem dominante da ciência
+computacional. Três razões explicam essa hegemonia. Primeiro, a
+\textbf{legibilidade}: a sintaxe de \python{} aproxima-se do pseudocódigo, o que
+reduz a distância entre a ideia e a implementação. Segundo, o \textbf{ecossistema}:
+bibliotecas como \numpy{}, SciPy, Matplotlib e o próprio \pyscf{} formam um arsenal
+maduro e interoperável. Terceiro, a \textbf{gratuidade e a portabilidade}: o mesmo
+script roda em um notebook pessoal, num servidor de alto desempenho ou na nuvem
+gratuita do Google Colab.
+
+Para nós, químicos quânticos, há um argumento adicional: \python{} atua como uma
+\emph{cola} entre componentes de alto desempenho. As rotinas numéricas pesadas
+do \pyscf{} são executadas em C e Fortran otimizados; \python{} apenas as comanda.
+Escrevemos código legível e obtemos desempenho de código compilado --- o melhor
+dos dois mundos.
+
+\begin{caixanota}
+\textbf{Compilada vs.\ interpretada.} Linguagens como C precisam ser
+\emph{compiladas} --- traduzidas para linguagem de máquina --- antes de rodar.
+\python{} é \emph{interpretada}: cada linha é executada na hora, o que torna o
+desenvolvimento ágil e interativo, ideal para explorar dados científicos. O
+custo em velocidade é contornado delegando os cálculos intensos a bibliotecas
+compiladas, exatamente como o \pyscf{} faz.
+\end{caixanota}
+
+%---------------------------------------------------------------------
+\section{Variáveis e Tipos de Dados}
+\label{sec:variaveis}
+%---------------------------------------------------------------------
+
+Uma \textbf{variável} é um nome que aponta para um valor guardado na memória. Em
+\python{}, criar uma variável é tão simples quanto atribuir um valor a um nome com
+o sinal de igual:
+
+\begin{lstlisting}[style=python,caption={Primeiras variáveis: dados de um átomo de hidrogênio.},label={lst:varsH}]
+# Numero atomico e simbolo do hidrogenio
+numero_atomico = 1
+simbolo = "H"
+
+# Energia do estado fundamental do atomo de H, em hartree
+energia_fundamental = -0.5
+
+# Numero de eletrons
+n_eletrons = 1
+
+print(simbolo, "tem", n_eletrons, "eletron e energia", energia_fundamental, "Ha")
+\end{lstlisting}
+
+\noindent
+Ao executar esse trecho, você verá:
+
+\begin{lstlisting}[style=console]
+H tem 1 eletron e energia -0.5 Ha
+\end{lstlisting}
+
+\noindent
+Repare em alguns pontos importantes. As linhas iniciadas por \code{\#} são
+\textbf{comentários}: \python{} as ignora, mas elas são preciosas para quem lê o
+código (inclusive você, semanas depois). Não declaramos ``tipos'': \python{}
+infere automaticamente que \code{numero\_atomico} é um inteiro e
+\code{energia\_fundamental}, um número de ponto flutuante.
+
+\subsection{Os tipos fundamentais}
+
+Quatro tipos básicos cobrem a quase totalidade das nossas necessidades:
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Inteiros} (\code{int}) --- contagens exatas: número de elétrons,
+        carga, multiplicidade de spin. Ex.: \code{n\_eletrons = 1}.
+  \item \textbf{Ponto flutuante} (\code{float}) --- números reais aproximados:
+        energias, coordenadas, distâncias. Ex.: \code{energia = -1.174}.
+  \item \textbf{Texto} (\code{str}) --- sequências de caracteres: símbolos
+        atômicos, nomes de bases, rótulos. Ex.: \code{base = "sto-3g"}.
+  \item \textbf{Booleanos} (\code{bool}) --- verdadeiro ou falso, usados em
+        decisões. Ex.: \code{convergiu = True}.
+\end{itemize}
+
+A função embutida \code{type()} revela o tipo de qualquer valor, e a \code{print()}
+mostra resultados na tela:
+
+\begin{lstlisting}[style=python,caption={Inspecionando tipos com \code{type()}.}]
+carga = 0                 # int
+distancia_HH = 0.74       # float, em angstrom
+base = "sto-3g"           # str
+convergiu = True          # bool
+
+print(type(carga))        # <class 'int'>
+print(type(distancia_HH)) # <class 'float'>
+print(type(base))         # <class 'str'>
+print(type(convergiu))    # <class 'bool'>
+\end{lstlisting}
+
+\subsection{Aritmética e a unidade atômica de energia}
+
+\python{} funciona como uma calculadora poderosa. Os operadores básicos são
+\code{+}, \code{-}, \code{*} (multiplicação), \code{/} (divisão), \code{**} (potência) e
+\code{\%} (resto). Vejamos um cálculo com significado físico: converter uma energia
+de \emph{hartree} para elétron-volt (1 hartree $\approx$ 27{,}2114 eV).
+
+\begin{lstlisting}[style=python,caption={Conversão de unidades de energia.},label={lst:conversao}]
+HARTREE_EM_EV = 27.2114        # constante de conversao
+
+energia_H2_hartree = -1.11676  # energia da molecula H2 (Hartree-Fock/STO-3G)
+energia_H2_eV = energia_H2_hartree * HARTREE_EM_EV
+
+print("Energia da H2:", energia_H2_eV, "eV")
+# Energia da H2: -30.390... eV
+\end{lstlisting}
+
+\begin{caixanota}
+\textbf{Unidades atômicas.} A química quântica trabalha em \emph{unidades
+atômicas} (u.a.), nas quais a massa do elétron, a carga elementar, a constante
+de Planck reduzida $\hbar$ e a constante de Coulomb valem exatamente~1. A unidade
+de energia é o \emph{hartree} (Ha) e a de comprimento é o \emph{bohr}
+($a_0 \approx 0{,}529$~Å). Essa escolha elimina constantes das equações e é o
+padrão interno do \pyscf{}. Guarde as conversões
+1~Ha~$\approx$~27{,}2114~eV e 1~bohr~$\approx$~0{,}529~Å: elas reaparecerão o
+tempo todo.
+\end{caixanota}
+
+\begin{caixaatencao}
+A divisão \code{/} sempre produz um \code{float} em \python{}~3, mesmo quando o
+resultado é ``redondo'': \code{4 / 2} devolve \code{2.0}, não \code{2}. Para divisão
+inteira (descartando a parte fracionária) use \code{//}. Confundir os dois é uma
+fonte clássica de \emph{bugs} sutis.
+\end{caixaatencao}
+
+%---------------------------------------------------------------------
+\section{Estruturas de Dados: Listas, Tuplas e Dicionários}
+\label{sec:estruturas}
+%---------------------------------------------------------------------
+
+Raramente lidamos com um único número. Uma molécula tem vários átomos; um cálculo
+produz muitas energias orbitais. \python{} oferece estruturas para agrupar
+valores.
+
+\subsection{Listas}
+
+Uma \textbf{lista} é uma coleção ordenada e modificável de valores, delimitada por
+colchetes:
+
+\begin{lstlisting}[style=python,caption={Energias orbitais em uma lista.},label={lst:lista}]
+# Energias dos orbitais moleculares (em hartree), do mais baixo ao mais alto
+energias_orbitais = [-0.578, 0.670, 0.965, 1.410]
+
+print("Numero de orbitais:", len(energias_orbitais))  # 4
+print("HOMO (ultimo ocupado):", energias_orbitais[0])  # -0.578
+print("Ultimo da lista:", energias_orbitais[-1])       # 1.410
+\end{lstlisting}
+
+\noindent
+Note duas convenções cruciais de \python{}. Primeiro, a \textbf{indexação começa em
+zero}: o primeiro elemento é \code{energias\_orbitais[0]}. Segundo, índices
+negativos contam a partir do fim: \code{[-1]} é o último elemento. A função
+\code{len()} devolve o tamanho da coleção.
+
+Listas são \emph{modificáveis}: podemos acrescentar, remover e alterar elementos.
+
+\begin{lstlisting}[style=python,caption={Modificando uma lista.}]
+distancias = [0.70, 0.74, 0.80]   # distancias H-H em angstrom
+distancias.append(0.90)           # adiciona ao final
+distancias[0] = 0.72              # altera o primeiro elemento
+
+print(distancias)                 # [0.72, 0.74, 0.8, 0.9]
+
+# "Fatiamento" (slicing): sublista do indice 1 (inclusive) ao 3 (exclusive)
+print(distancias[1:3])            # [0.74, 0.8]
+\end{lstlisting}
+
+\begin{caixadica}
+O \emph{fatiamento} \code{lista[inicio:fim]} inclui o índice \code{inicio} e
+\emph{exclui} o \code{fim}. Uma forma de lembrar: o comprimento da fatia é
+\code{fim - inicio}. \code{distancias[1:3]} tem $3-1=2$ elementos.
+\end{caixadica}
+
+\subsection{Tuplas}
+
+Uma \textbf{tupla} é como uma lista, mas \emph{imutável}: uma vez criada, não pode
+ser alterada. Usamos tuplas para agrupar dados que formam uma unidade lógica e
+não devem mudar --- por exemplo, as coordenadas $(x, y, z)$ de um átomo:
+
+\begin{lstlisting}[style=python,caption={Coordenadas atômicas como tuplas.}]
+# Posicao de um atomo de hidrogenio no espaco (x, y, z) em angstrom
+posicao_H = (0.0, 0.0, 0.371)
+
+print("Coordenada z:", posicao_H[2])   # 0.371
+# posicao_H[2] = 0.5   # ISTO GERARIA ERRO: tuplas sao imutaveis
+\end{lstlisting}
+
+\subsection{Dicionários}
+
+Um \textbf{dicionário} associa \emph{chaves} a \emph{valores}, permitindo buscas por
+nome em vez de por posição. É a estrutura ideal para tabelas de propriedades:
+
+\begin{lstlisting}[style=python,caption={Tabela de números atômicos com dicionário.},label={lst:dict}]
+# Mapeia simbolo do elemento -> numero atomico
+numeros_atomicos = {
+    "H": 1,
+    "C": 6,
+    "N": 7,
+    "O": 8,
+    "Si": 14,
+    "P": 15,
+}
+
+print("Numero atomico do fosforo:", numeros_atomicos["P"])   # 15
+print("Elementos tabelados:", list(numeros_atomicos.keys()))
+
+# Adicionando uma nova entrada
+numeros_atomicos["Ga"] = 31
+print("Galio agora vale:", numeros_atomicos["Ga"])            # 31
+\end{lstlisting}
+
+\begin{caixanota}
+Silício (Si, $Z=14$) e fósforo (P, $Z=15$) são os protagonistas do nosso
+Projeto Âncora: construiremos um \qubit{} de spin a partir de um átomo de fósforo
+substituindo um silício numa rede cristalina. Guarde bem esses dois símbolos.
+\end{caixanota}
+
+%---------------------------------------------------------------------
+\section{NumPy: O Arsenal Numérico}
+\label{sec:numpy}
+%---------------------------------------------------------------------
+
+Se \python{} é a linguagem da química quântica computacional, o \numpy{} é o seu
+dialeto numérico. A mecânica quântica é, em sua essência, \textbf{álgebra linear}:
+estados são vetores, operadores são matrizes, e energias são autovalores. O
+\numpy{} fornece o objeto \code{ndarray} (\emph{array} N-dimensional) e um vasto
+conjunto de operações vetoriais rápidas para manipulá-lo. Praticamente tudo o que
+o \pyscf{} devolve --- coeficientes de orbitais, matrizes de densidade, integrais
+--- vem na forma de \emph{arrays} \numpy{}.
+
+\subsection{Importando e criando arrays}
+
+Bibliotecas em \python{} são carregadas com a palavra-chave \code{import}. Por
+convenção universal, o \numpy{} é importado com o apelido \code{np}:
+
+\begin{lstlisting}[style=python,caption={Criando arrays com \numpy{}.},label={lst:nparray}]
+import numpy as np
+
+# Um vetor de energias orbitais
+energias = np.array([-0.578, 0.670, 0.965, 1.410])
+
+# Uma matriz 2x2 (por exemplo, um Hamiltoniano simples)
+H = np.array([[0.0, -1.0],
+              [-1.0, 0.0]])
+
+print("Formato do vetor:", energias.shape)   # (4,)
+print("Formato da matriz:", H.shape)         # (2, 2)
+\end{lstlisting}
+
+\noindent
+O atributo \code{.shape} descreve as dimensões do \emph{array}: \code{(4,)} é um vetor
+de quatro elementos; \code{(2, 2)} é uma matriz de duas linhas e duas colunas.
+
+\subsection{Operações vetorizadas}
+
+A grande vantagem do \numpy{} é a \textbf{vetorização}: operações se aplicam a todos
+os elementos de uma vez, sem laços explícitos --- com sintaxe limpa e velocidade
+de código compilado.
+
+\begin{lstlisting}[style=python,caption={Vetorização: convertendo um vetor inteiro de unidades.}]
+import numpy as np
+
+energias_hartree = np.array([-0.578, 0.670, 0.965, 1.410])
+
+# Multiplica CADA elemento por 27.2114, de uma so vez
+energias_eV = energias_hartree * 27.2114
+
+print(energias_eV)
+# [-15.728...  18.231...  26.259...  38.368...]
+
+# Estatisticas embutidas
+print("Energia minima:", energias_hartree.min())     # -0.578
+print("Energia media:", energias_hartree.mean())
+print("Soma das energias:", energias_hartree.sum())
+\end{lstlisting}
+
+\begin{caixadica}
+Sempre que estiver prestes a escrever um laço para percorrer um \emph{array} e
+fazer contas elemento a elemento, pergunte-se: ``existe uma operação \numpy{}
+vetorizada para isto?''. Quase sempre existe, e ela será mais curta e muito mais
+rápida.
+\end{caixadica}
+
+\subsection{Álgebra linear: o coração da mecânica quântica}
+
+Chegamos ao ponto em que a álgebra linear encontra a física. Considere o
+Hamiltoniano de dois níveis
+\[
+  \hat{H} = \begin{pmatrix} 0 & -t \\ -t & 0 \end{pmatrix},
+\]
+que descreve, por exemplo, um elétron que pode ocupar dois sítios acoplados por
+uma amplitude de \emph{tunelamento} $t$. Os \textbf{autovalores} dessa matriz são as
+energias permitidas do sistema, e os \textbf{autovetores}, os estados
+correspondentes. Com \numpy{}, obtê-los é imediato:
+
+\begin{lstlisting}[style=python,caption={Autovalores e autovetores de um Hamiltoniano 2x2.},label={lst:eig}]
+import numpy as np
+
+t = 1.0
+H = np.array([[0.0, -t],
+              [-t,  0.0]])
+
+# Para matrizes simetricas (Hermitianas), use eigh
+autovalores, autovetores = np.linalg.eigh(H)
+
+print("Energias (autovalores):", autovalores)   # [-1.  1.]
+print("Estados (colunas):")
+print(autovetores)
+\end{lstlisting}
+
+\noindent
+O resultado, \code{[-1.\ 1.]}, informa que o sistema tem dois níveis de energia,
+$-t$ e $+t$. O estado fundamental (energia $-t$) é a combinação simétrica dos dois
+sítios --- exatamente a intuição por trás da ligação química e, mais adiante, do
+acoplamento entre dois \qubit{}s doadores. Este pequeno exemplo é um microcosmo de
+tudo o que faremos: montar um operador como matriz e diagonalizá-lo.
+
+\begin{caixaatencao}
+Para matrizes simétricas reais (ou Hermitianas complexas) --- que é o caso de
+todo Hamiltoniano físico --- use \code{np.linalg.eigh}, não \code{np.linalg.eig}. A
+versão \code{eigh} explora a simetria, é mais rápida e devolve autovalores reais já
+ordenados. Usar \code{eig} num Hamiltoniano pode render autovalores com minúsculas
+partes imaginárias espúrias.
+\end{caixaatencao}
+
+\begin{caixanota}
+\textbf{Produtos que usaremos sempre.} O produto matriz-vetor e matriz-matriz em
+\numpy{} é feito com o operador \code{@} (ou \code{np.dot}). Assim, \code{H @ psi} aplica
+o operador $\hat H$ ao estado $\psi$, e o valor esperado da energia
+$\langle\psi|\hat H|\psi\rangle$ escreve-se \code{psi @ H @ psi} (para $\psi$ real e
+normalizado). Guardaremos esse padrão para calcular energias mais adiante.
+\end{caixanota}
+
+%---------------------------------------------------------------------
+\section{Controle de Fluxo: Condicionais e Laços}
+\label{sec:fluxo}
+%---------------------------------------------------------------------
+
+Scripts científicos precisam tomar decisões e repetir tarefas. Para isso, \python{}
+oferece condicionais (\code{if}) e laços (\code{for}, \code{while}).
+
+\subsection{Condicionais}
+
+A estrutura \code{if}/\code{elif}/\code{else} executa blocos diferentes conforme uma
+condição. Um exemplo típico: classificar se um cálculo convergiu.
+
+\begin{lstlisting}[style=python,caption={Decisão condicional.},label={lst:if}]
+delta_energia = 3e-9   # variacao de energia no ultimo passo do SCF
+limiar = 1e-8
+
+if delta_energia < limiar:
+    print("Convergiu! Podemos confiar no resultado.")
+else:
+    print("Ainda nao convergiu; aumente o numero de iteracoes.")
+\end{lstlisting}
+
+\begin{caixaatencao}
+\textbf{Indentação é sintaxe.} Ao contrário de outras linguagens, \python{} usa o
+\emph{recuo} (espaços à esquerda) para delimitar blocos --- não há chaves. Todas
+as linhas de um mesmo bloco devem ter o mesmo recuo (o padrão é 4 espaços).
+Misturar espaços e tabulações, ou recuar de forma inconsistente, gera o temido
+\code{IndentationError}. Configure seu editor para inserir 4 espaços ao pressionar
+Tab.
+\end{caixaatencao}
+
+\subsection{O laço \code{for}}
+
+O laço \code{for} percorre os elementos de uma coleção. É a ferramenta perfeita para
+processar listas de energias, varreduras de distância e conjuntos de átomos.
+
+\begin{lstlisting}[style=python,caption={Percorrendo energias com \code{for}.},label={lst:for}]
+energias_hartree = [-0.578, 0.670, 0.965, 1.410]
+
+for i, e in enumerate(energias_hartree):
+    e_eV = e * 27.2114
+    print(f"Orbital {i}: {e:8.3f} Ha  =  {e_eV:8.2f} eV")
+\end{lstlisting}
+
+\noindent
+Aqui aparecem dois recursos valiosos. A função \code{enumerate()} devolve, a cada
+volta, o índice \code{i} \emph{e} o valor \code{e}. E as \emph{f-strings}
+(\code{f"..."}) permitem inserir variáveis dentro de um texto com formatação
+controlada: \code{\{e:8.3f\}} imprime o número com 3 casas decimais num campo de
+largura 8. A saída fica alinhada e legível:
+
+\begin{lstlisting}[style=console]
+Orbital 0:   -0.578 Ha  =   -15.73 eV
+Orbital 1:    0.670 Ha  =    18.23 eV
+Orbital 2:    0.965 Ha  =    26.26 eV
+Orbital 3:    1.410 Ha  =    38.37 eV
+\end{lstlisting}
+
+\begin{caixadica}
+A função \code{range(n)} gera a sequência $0, 1, \dots, n-1$ e é ideal para repetir
+uma tarefa um número fixo de vezes: \code{for i in range(5):}. Combinada com
+\code{range(inicio, fim, passo)}, ela também produz varreduras --- por exemplo, uma
+sequência de distâncias interatômicas.
+\end{caixadica}
+
+%---------------------------------------------------------------------
+\section{Funções e Módulos}
+\label{sec:funcoes}
+%---------------------------------------------------------------------
+
+À medida que os scripts crescem, repetir código torna-se um risco. As
+\textbf{funções} encapsulam um trecho de lógica sob um nome, permitindo reutilizá-lo
+com diferentes entradas. Definimos funções com \code{def}:
+
+\begin{lstlisting}[style=python,caption={Uma função para converter energias.},label={lst:funcao}]
+def hartree_para_eV(energia_hartree):
+    """Converte uma energia de hartree para eletron-volt."""
+    return energia_hartree * 27.2114
+
+# Reutilizando a funcao com diferentes entradas
+print(hartree_para_eV(-0.5))      # -13.6057
+print(hartree_para_eV(-1.1173))   # -30.397...
+\end{lstlisting}
+
+\noindent
+A palavra \code{return} entrega o resultado a quem chamou a função. O texto entre
+aspas triplas logo após o \code{def} é a \emph{docstring}: uma breve descrição do
+que a função faz, que boas ferramentas exibem como documentação.
+
+Funções podem receber vários argumentos, inclusive com valores-padrão. Vejamos
+uma que estima, de forma simplificada, a energia de uma ligação a partir de dois
+níveis acoplados --- reaproveitando a ideia da Listagem~\ref{lst:eig}:
+
+\begin{lstlisting}[style=python,caption={Função com valor-padrão e uso de \numpy{}.}]
+import numpy as np
+
+def energia_ligante(t=1.0):
+    """Energia do estado ligante de um sistema de dois sitios,
+    acoplados por uma amplitude de tunelamento t (em hartree)."""
+    H = np.array([[0.0, -t],
+                  [-t,  0.0]])
+    autovalores = np.linalg.eigh(H)[0]
+    return autovalores[0]   # o menor autovalor: estado fundamental
+
+print(energia_ligante())      # -1.0  (usa t = 1.0, o padrao)
+print(energia_ligante(0.5))   # -0.5
+\end{lstlisting}
+
+\begin{caixanota}
+\textbf{Módulos e bibliotecas.} Um \emph{módulo} é um arquivo \code{.py} com funções
+e variáveis reutilizáveis; uma \emph{biblioteca} (ou pacote) é uma coleção de
+módulos. Já usamos o \numpy{} via \code{import numpy as np}. No próximo capítulo,
+faremos \code{from pyscf import gto, scf} para trazer os módulos do \pyscf{} que
+definem moléculas e executam cálculos. Toda a nossa jornada será uma sucessão de
+importações e chamadas de função.
+\end{caixanota}
+
+%---------------------------------------------------------------------
+\section{Ambientes de Desenvolvimento: Jupyter e Google Colab}
+\label{sec:ambientes}
+%---------------------------------------------------------------------
+
+Onde, afinal, digitamos e executamos todo esse código? Há muitos caminhos, mas
+para a química quântica computacional dois ambientes se destacam pela combinação
+de interatividade e baixa barreira de entrada: o \textbf{Jupyter Notebook} e o
+\textbf{Google Colab}.
+
+\subsection{O paradigma do \emph{notebook}}
+
+Um \emph{notebook} é um documento interativo composto de \textbf{células}. Há dois
+tipos principais: células de \emph{código}, que você executa e cujo resultado
+aparece logo abaixo, e células de \emph{texto} (em Markdown), para anotações,
+títulos e equações. Essa mistura de código, resultados e narrativa faz do
+\emph{notebook} o ambiente ideal para a ciência exploratória: você testa uma
+ideia, vê o gráfico, escreve uma conclusão, tudo no mesmo lugar. É por isso que
+todos os materiais deste livro serão distribuídos como \emph{notebooks}.
+
+\begin{caixadica}
+Atalhos essenciais do Jupyter/Colab: \texttt{Shift+Enter} executa a célula atual
+e passa para a próxima; \texttt{Ctrl+Enter} executa sem avançar. Execute as
+células \emph{na ordem}, de cima para baixo --- uma variável definida numa célula
+só existe depois que ela foi executada.
+\end{caixadica}
+
+\subsection{Jupyter Notebook (local)}
+
+O Jupyter roda no seu próprio computador e é parte da distribuição
+\textbf{Anaconda}, a forma mais simples de instalar \python{} e as bibliotecas
+científicas de uma só vez. Após instalar o Anaconda (disponível para Windows,
+macOS e Linux em \url{https://www.anaconda.com/download}), abra o
+\emph{Anaconda Navigator} e clique em ``Launch'' sob o Jupyter Notebook, ou
+execute no terminal:
+
+\begin{lstlisting}[style=console]
+jupyter notebook
+\end{lstlisting}
+
+\noindent
+Uma aba abrirá no seu navegador. Trabalhar localmente dá controle total e não
+depende de conexão à internet --- ideal para cálculos mais longos.
+
+\subsection{Google Colab (nuvem)}
+
+O \textbf{Google Colab} (\url{https://colab.research.google.com}) executa
+\emph{notebooks} \python{} em servidores do Google, gratuitamente, exigindo apenas
+uma conta Google e um navegador. \textbf{Nada precisa ser instalado no seu
+computador.} Para quem está começando, é o caminho mais rápido: em segundos você
+tem um ambiente pronto, e as bibliotecas ausentes podem ser instaladas na hora
+com um comando.
+
+\begin{caixadica}
+No Colab (e no Jupyter), comandos de sistema podem ser executados dentro de uma
+célula precedendo-os por um ponto de exclamação. Assim, \code{!pip install pyscf}
+instala o \pyscf{} diretamente no ambiente de nuvem --- exatamente o que faremos a
+seguir.
+\end{caixadica}
+
+\begin{caixanota}
+\textbf{Qual escolher?} Recomendamos o \textbf{Google Colab} para os primeiros
+passos e para acompanhar este livro sem atritos, pois elimina a etapa de
+instalação local. Conforme seus cálculos crescerem --- nanocristais com muitos
+elétrons exigem tempo e memória ---, uma instalação local via Anaconda passa a
+valer a pena. Os \emph{notebooks} do livro funcionam nos dois ambientes.
+\end{caixanota}
+
+%---------------------------------------------------------------------
+\section{Instalação do PySCF}
+\label{sec:instalacao}
+%---------------------------------------------------------------------
+
+Com um ambiente em mãos, resta instalar o protagonista. O \pyscf{} é distribuído
+como um pacote \python{} e instala-se com o gerenciador \code{pip}. As instruções
+abaixo cobrem os principais cenários.
+
+\begin{caixaatencao}
+O \pyscf{} oferece suporte pleno a \textbf{Linux} e \textbf{macOS}. No
+\textbf{Windows}, a instalação nativa é limitada; a forma recomendada é usar o
+\textbf{WSL} (\emph{Windows Subsystem for Linux}) ou, mais simples ainda, o
+\textbf{Google Colab}. Se você usa Windows e quer evitar complicações, comece
+pelo Colab.
+\end{caixaatencao}
+
+\subsection{Google Colab (recomendado para começar)}
+
+Abra um \emph{notebook} novo e execute, na primeira célula:
+
+\begin{lstlisting}[style=console]
+!pip install pyscf
+\end{lstlisting}
+
+\noindent
+Aguarde alguns segundos até a mensagem de sucesso. Pronto: o \pyscf{} está
+disponível naquele \emph{notebook}.
+
+\subsection{Linux e macOS}
+
+Com \python{}~3.10 ou superior instalado, abra um terminal e execute:
+
+\begin{lstlisting}[style=console]
+pip install pyscf
+\end{lstlisting}
+
+\noindent
+Se você usa Anaconda, é boa prática criar um \emph{ambiente} dedicado ao livro,
+isolando suas bibliotecas de outros projetos:
+
+\begin{lstlisting}[style=console]
+conda create -n pyscf-livro python=3.11
+conda activate pyscf-livro
+pip install pyscf numpy scipy matplotlib jupyter
+\end{lstlisting}
+
+\subsection{Windows via WSL}
+
+No Windows~10/11, instale o WSL abrindo o PowerShell como administrador e
+executando \code{wsl --install}. Após reiniciar e configurar uma distribuição Linux
+(Ubuntu, por padrão), abra o terminal do Ubuntu e proceda como na seção anterior:
+
+\begin{lstlisting}[style=console]
+sudo apt update
+sudo apt install python3-pip
+pip install pyscf
+\end{lstlisting}
+
+\begin{caixadica}
+Em qualquer cenário, você pode fixar a versão do \pyscf{} para garantir
+reprodutibilidade, por exemplo \code{pip install pyscf==2.6.2}. Ao longo do livro
+usaremos recursos disponíveis a partir do \pyscf{}~2.3; qualquer versão igual ou
+superior serve.
+\end{caixadica}
+
+%---------------------------------------------------------------------
+\section{Mãos à Obra: Verificando a Instalação}
+\label{sec:maos}
+%---------------------------------------------------------------------
+
+Chegou a hora de fechar o círculo. Vamos confirmar que \python{}, \numpy{} e
+\pyscf{} estão prontos para uso. Abra um \emph{notebook} (Colab ou Jupyter) e, se
+ainda não o fez nesta sessão, instale o \pyscf{}.
+
+\begin{caixamaos}
+\textbf{Objetivo:} verificar que todo o ambiente funciona, executando o primeiro
+comando de importação do \pyscf{} e imprimindo as versões instaladas.
+
+\vspace{0.4cm}
+\textbf{Passo 1.} Numa célula, instale o \pyscf{} (só é preciso uma vez por
+sessão no Colab):
+
+\begin{lstlisting}[style=console]
+!pip install pyscf
+\end{lstlisting}
+
+\textbf{Passo 2.} Em outra célula, importe as bibliotecas e imprima suas versões:
+
+\begin{lstlisting}[style=python]
+import numpy as np
+import pyscf
+
+print("NumPy versao:", np.__version__)
+print("PySCF versao:", pyscf.__version__)
+print("Ambiente pronto para a jornada!")
+\end{lstlisting}
+
+\textbf{Resultado esperado} (os números de versão podem variar):
+
+\begin{lstlisting}[style=console]
+NumPy versao: 1.26.4
+PySCF versao: 2.6.2
+Ambiente pronto para a jornada!
+\end{lstlisting}
+
+\vspace{0.2cm}
+Se você viu essas três linhas sem mensagens de erro em vermelho,
+\textbf{parabéns}: seu laboratório computacional está montado. Se algo falhou,
+consulte a caixa de Atenção a seguir.
+\end{caixamaos}
+
+\begin{caixaatencao}
+\textbf{Problemas comuns.} (i)~\code{ModuleNotFoundError: No module named 'pyscf'}
+--- a instalação não foi executada nesta sessão; rode \code{!pip install pyscf}
+novamente. (ii)~No Colab, se a instalação parecer não ``pegar'', reinicie o
+ambiente pelo menu \emph{Runtime~$\rightarrow$ Restart runtime} e execute as
+células na ordem. (iii)~No Windows nativo, erros de compilação indicam que você
+deveria estar usando WSL ou Colab.
+\end{caixaatencao}
+
+%---------------------------------------------------------------------
+\begin{caixaancora}
+\textbf{Etapa 0 --- Nasce o \emph{notebook} mestre.}
+
+O Projeto Âncora deste livro é a construção completa de um \qubit{} de spin em
+silício dopado com fósforo (Si:P). Cada capítulo acrescentará uma peça. A
+Etapa~0, que você acaba de cumprir, é a fundação: um ambiente funcional.
+
+\vspace{0.3cm}
+\textbf{Sua tarefa.} Crie um \emph{notebook} chamado
+\code{projeto\_ancora\_SiP.ipynb}. Na primeira célula de texto (Markdown), escreva
+um título e uma frase declarando o objetivo do projeto. Na primeira célula de
+código, cole o bloco de verificação do Mãos à Obra e execute-o. Guarde esse
+\emph{notebook}: ele crescerá conosco até conter, ao final do livro, todo o
+\emph{pipeline} de simulação --- da geometria do nanocristal ao tempo de
+descoerência $T_2^\ast$.
+
+\vspace{0.3cm}
+No próximo capítulo, esse mesmo \emph{notebook} receberá seu primeiro cálculo de
+química quântica de verdade: a energia do átomo de silício.
+\end{caixaancora}
+
+%---------------------------------------------------------------------
+\section*{Resumo do Capítulo}
+\addcontentsline{toc}{section}{Resumo do Capítulo}
+%---------------------------------------------------------------------
+
+\begin{itemize}[leftmargin=*]
+  \item \python{} é a linguagem que orquestra a química quântica computacional:
+        legível, gratuita e cercada de um ecossistema científico maduro.
+  \item \textbf{Variáveis} guardam valores de quatro tipos essenciais: inteiros,
+        \emph{floats}, textos e booleanos. Trabalhamos em unidades atômicas
+        (hartree, bohr).
+  \item \textbf{Listas}, \textbf{tuplas} e \textbf{dicionários} organizam
+        conjuntos de dados; a indexação começa em zero.
+  \item O \numpy{} traz \emph{arrays} e álgebra linear vetorizada. Montar um
+        Hamiltoniano como matriz e diagonalizá-lo com \code{np.linalg.eigh} é o
+        gesto fundamental que repetiremos por todo o livro.
+  \item \textbf{Condicionais}, \textbf{laços} e \textbf{funções} dão estrutura e
+        reaproveitamento aos scripts; a indentação define blocos.
+  \item \textbf{Jupyter} (local, via Anaconda) e \textbf{Google Colab} (nuvem,
+        sem instalação) são os ambientes de trabalho recomendados.
+  \item O \pyscf{} instala-se com \code{pip install pyscf}; no Windows, prefira WSL
+        ou Colab.
+  \item O \textbf{Projeto Âncora} teve início: você tem um \emph{notebook} mestre
+        com o ambiente verificado.
+\end{itemize}
+
+%---------------------------------------------------------------------
+\section*{Exercícios}
+\addcontentsline{toc}{section}{Exercícios}
+%---------------------------------------------------------------------
+
+\begin{enumerate}[leftmargin=*,label=\textbf{1.\arabic*}]
+  \item \textbf{Conversões.} Crie uma variável com a energia
+        $-2{,}903$~Ha (aproximadamente a energia do átomo de hélio). Converta-a
+        para eV usando o fator $27{,}2114$ e imprima o resultado com uma
+        \emph{f-string}, exibindo 4 casas decimais.
+
+  \item \textbf{Dicionário de massas.} Monte um dicionário associando os símbolos
+        \code{"H"}, \code{"Si"} e \code{"P"} às suas massas atômicas aproximadas
+        (1{,}008; 28{,}09; 30{,}97). Em seguida, imprima a massa do fósforo e
+        adicione uma entrada para o carbono (\code{"C"}: 12{,}011).
+
+  \item \textbf{Varredura com \code{for}.} Usando \code{range}, crie uma lista de
+        cinco distâncias interatômicas de $0{,}70$ a $0{,}90$~Å em passos de
+        $0{,}05$. Percorra-a com um laço \code{for} e imprima cada distância
+        convertida para bohr (divida por $0{,}529$).
+
+  \item \textbf{Diagonalização.} Adapte a Listagem~\ref{lst:eig} para o
+        Hamiltoniano
+        $\hat H = \begin{psmallmatrix} \varepsilon & -t \\ -t & \varepsilon
+        \end{psmallmatrix}$ com $\varepsilon = 0{,}2$ e $t = 1{,}0$. Imprima os
+        autovalores e verifique, no papel, que eles valem $\varepsilon \pm t$.
+
+  \item \textbf{Função reutilizável.} Escreva uma função
+        \code{gap\_HOMO\_LUMO(energias)} que receba uma lista de energias orbitais
+        \emph{ordenada} e o índice do HOMO, e devolva o \emph{gap}
+        (energia do LUMO menos a do HOMO). Teste-a com a lista da
+        Listagem~\ref{lst:lista}, supondo o HOMO no índice~0.
+
+  \item \textbf{Projeto Âncora.} No seu \emph{notebook}
+        \code{projeto\_ancora\_SiP.ipynb}, acrescente uma célula que imprima, além
+        das versões de \numpy{} e \pyscf{}, também a versão do \python{} em
+        execução (dica: \code{import sys; print(sys.version)}). Anote numa célula de
+        texto qual ambiente você escolheu (Colab ou Jupyter) e por quê.
+\end{enumerate}

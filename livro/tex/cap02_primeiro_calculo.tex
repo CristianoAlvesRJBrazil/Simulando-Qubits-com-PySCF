@@ -1,0 +1,549 @@
+%=====================================================================
+\chapter{O Primeiro Cálculo com PySCF}
+\label{cap:primeiro}
+%=====================================================================
+
+No capítulo anterior montamos o laboratório: temos \python{}, \numpy{} e o
+\pyscf{} instalados e verificados. Agora vamos usá-los para o que realmente
+importa --- resolver a equação de Schrödinger eletrônica de um sistema real e
+obter sua energia. Ao final deste capítulo, você terá calculado, do zero, a
+energia do átomo de hidrogênio, da molécula H$_2$ e --- como primeiro passo
+concreto do Projeto Âncora --- do átomo de silício.
+
+Não se preocupe se os fundamentos teóricos do método Hartree-Fock ainda
+parecerem nebulosos: o Capítulo~4 os desenvolverá em detalhe. Aqui, o objetivo é
+outro e igualmente essencial --- \textbf{ganhar fluência no fluxo de trabalho do
+\pyscf{}}: definir um sistema, escolher um método, executar o cálculo e
+interpretar a saída. Esse quarteto se repetirá, praticamente inalterado, em todos
+os cálculos do livro.
+
+%---------------------------------------------------------------------
+\section{A Anatomia de um Cálculo em PySCF}
+\label{sec:anatomia}
+%---------------------------------------------------------------------
+
+Quase todo cálculo de estrutura eletrônica no \pyscf{} segue três passos:
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Definir o sistema} --- que átomos, em que posições, com que carga
+        e spin, e em qual conjunto de funções de base. Isso é encapsulado no
+        objeto \code{Mole} (de \emph{molecule}).
+  \item \textbf{Escolher o método} --- Hartree-Fock, DFT, pós-Hartree-Fock. Aqui
+        usaremos o objeto \code{SCF} na sua forma Hartree-Fock.
+  \item \textbf{Executar e analisar} --- disparar o cálculo com \code{kernel()} e
+        ler os resultados: energia total, energias orbitais, convergência.
+\end{enumerate}
+
+\noindent
+Em código, esse esqueleto cabe em cinco linhas:
+
+\begin{lstlisting}[style=python,caption={O esqueleto de qualquer cálculo PySCF.},label={lst:esqueleto}]
+from pyscf import gto, scf          # 1. importa os modulos
+
+mol = gto.M(atom='H 0 0 0; H 0 0 0.74',  # 2. define o sistema
+            basis='sto-3g')
+
+mf = scf.RHF(mol)                   # 3. escolhe o metodo (Hartree-Fock)
+energia = mf.kernel()              # 4. executa e obtem a energia total
+\end{lstlisting}
+
+\noindent
+O módulo \code{gto} (\emph{Gaussian-type orbitals}) cuida da definição do sistema;
+o módulo \code{scf} (\emph{self-consistent field}) cuida dos métodos de campo
+autoconsistente, dos quais o Hartree-Fock é o mais fundamental. Vamos dissecar
+cada passo.
+
+%---------------------------------------------------------------------
+\section{Definindo uma Molécula: o Objeto \code{Mole}}
+\label{sec:mole}
+%---------------------------------------------------------------------
+
+Tudo começa pela descrição do sistema físico. A função \code{gto.M()} constrói um
+objeto \code{Mole} que reúne toda a informação: geometria, base, carga e spin. Seus
+argumentos mais importantes são:
+
+\begin{lstlisting}[style=python,caption={Os argumentos essenciais de \code{gto.M}.},label={lst:moleargs}]
+from pyscf import gto
+
+mol = gto.M(
+    atom='''H  0.0  0.0  0.0
+            H  0.0  0.0  0.74''',   # geometria: simbolo x y z (por linha)
+    basis='sto-3g',                 # conjunto de funcoes de base
+    charge=0,                       # carga total do sistema
+    spin=0,                         # numero de eletrons desemparelhados (2S)
+    unit='Angstrom',                # unidade das coordenadas (padrao)
+    verbose=4,                      # nivel de detalhe da saida (0 a 9)
+)
+\end{lstlisting}
+
+\subsection{A geometria: o argumento \code{atom}}
+
+A geometria é fornecida como um texto em que cada linha traz um símbolo atômico
+seguido de suas coordenadas cartesianas $x$, $y$, $z$. Átomos podem ser separados
+por quebras de linha (como acima) ou por ponto e vírgula na mesma linha
+(\code{'H 0 0 0; H 0 0 0.74'}). As coordenadas estão em ångström por padrão;
+para usar bohr, defina \code{unit='Bohr'}.
+
+\begin{caixaatencao}
+O argumento \code{spin} no \pyscf{} \textbf{não} é o spin total $S$ nem a
+multiplicidade $2S+1$: é o \emph{número de elétrons desemparelhados},
+$n_\alpha - n_\beta = 2S$. Assim, um sistema de camada fechada (como a H$_2$ no
+estado fundamental) tem \code{spin=0}; o átomo de hidrogênio, com um elétron
+solitário, tem \code{spin=1}; o átomo de silício, com dois elétrons $3p$
+desemparelhados, tem \code{spin=2}. Errar esse número é a causa mais comum de
+falhas em cálculos de átomos e radicais.
+\end{caixaatencao}
+
+\subsection{Inspecionando o objeto \code{Mole}}
+
+Uma vez construído, o objeto \code{mol} sabe muito sobre o sistema. Vale a pena
+interrogá-lo antes de calcular --- é uma checagem barata que evita horas de
+frustração com um sistema mal definido:
+
+\begin{lstlisting}[style=python,caption={Interrogando o objeto \code{Mole}.},label={lst:moleinspect}]
+from pyscf import gto
+
+mol = gto.M(atom='H 0 0 0; H 0 0 0.74', basis='sto-3g')
+
+print("Numero de eletrons:", mol.nelectron)      # 2
+print("Numero de atomos:", mol.natm)             # 2
+print("Numero de funcoes de base (AOs):", mol.nao)  # 2
+print("Carga:", mol.charge, " Spin (2S):", mol.spin)  # 0  0
+\end{lstlisting}
+
+\begin{lstlisting}[style=console]
+Numero de eletrons: 2
+Numero de atomos: 2
+Numero de funcoes de base (AOs): 2
+Carga: 0  Spin (2S): 0
+\end{lstlisting}
+
+\noindent
+O atributo \code{mol.nao} (\emph{number of atomic orbitals}) informa quantas
+funções de base descrevem o sistema --- um número que determina diretamente o
+custo do cálculo e a qualidade do resultado, como veremos a seguir.
+
+%---------------------------------------------------------------------
+\section{O Que é uma Base?}
+\label{sec:base}
+%---------------------------------------------------------------------
+
+Ao resolver a equação de Schrödinger num computador, não podemos representar os
+orbitais como funções contínuas arbitrárias. Em vez disso, escrevemos cada
+orbital molecular como uma \textbf{combinação linear} de funções conhecidas e
+fixas --- as \textbf{funções de base}. O conjunto dessas funções é o
+\emph{conjunto de base} (\emph{basis set}).
+
+Formalmente, um orbital molecular $\psi_i$ é expandido como
+\[
+  \psi_i(\mathbf{r}) = \sum_{\mu=1}^{N} C_{\mu i}\,\phi_\mu(\mathbf{r}),
+\]
+onde $\phi_\mu$ são as funções de base (fixas) e $C_{\mu i}$ são os coeficientes
+que o cálculo determina. Quanto \emph{maior} e mais flexível o conjunto de base
+(maior $N$), melhor a descrição --- e maior o custo computacional. Encontrar o
+equilíbrio entre precisão e custo é uma arte central da química quântica.
+
+\begin{caixanota}
+\textbf{Por que gaussianas?} As funções de base do \pyscf{} são \emph{orbitais do
+tipo gaussiano} (GTOs), da forma $e^{-\alpha r^2}$. Elas não descrevem um átomo
+tão fielmente quanto as funções exponenciais $e^{-\alpha r}$ (do átomo de
+hidrogênio real), mas têm uma propriedade matemática preciosa: o produto de duas
+gaussianas centradas em pontos diferentes é outra gaussiana. Isso torna as
+integrais de dois elétrons --- o gargalo do cálculo --- tratáveis analiticamente.
+Para recuperar o comportamento correto, cada função de base é, na verdade, uma
+soma fixa (\emph{contração}) de várias gaussianas.
+\end{caixanota}
+
+\subsection{Famílias de bases}
+
+Você encontrará algumas famílias de nomes recorrentes:
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{STO-3G} --- uma base \emph{mínima}: cada orbital atômico é
+        aproximado por 3 gaussianas contraídas. É pequena, rápida e ótima para
+        aprender e depurar, mas pouco precisa. Usaremo-la como ``base de
+        rascunho''.
+  \item \textbf{Pople} (\code{6-31G}, \code{6-311G**}) --- bases de porte médio,
+        clássicas na literatura.
+  \item \textbf{correlação consistente} (\code{cc-pVDZ}, \code{cc-pVTZ},
+        \code{cc-pVQZ}) --- bases sistemáticas, projetadas para convergir suave e
+        previsivelmente rumo ao limite. ``D'', ``T'', ``Q'' indicam qualidade
+        \emph{double}, \emph{triple}, \emph{quadruple-zeta}.
+  \item \textbf{def2} (\code{def2-SVP}, \code{def2-TZVP}) --- família moderna e
+        equilibrada de Karlsruhe, excelente para toda a tabela periódica ---
+        útil para os elementos mais pesados dos nossos nanocristais.
+\end{itemize}
+
+\subsection{O efeito da base na prática}
+
+Nada ensina melhor do que os números. A Tabela~\ref{tab:base} mostra a energia
+Hartree-Fock da molécula H$_2$ (à distância de $0{,}74$~Å) calculada com bases
+crescentes. Observe duas tendências: o número de funções de base (\code{nao})
+cresce, e a energia \emph{desce} monotonamente, aproximando-se do limite
+Hartree-Fock ($\approx -1{,}1336$~Ha).
+
+\begin{table}[h]
+  \centering
+  \caption{Energia HF da H$_2$ ($R = 0{,}74$~Å) em função da base.}
+  \label{tab:base}
+  \begin{tabular}{lcc}
+    \toprule
+    \textbf{Base} & \textbf{Funções de base (\code{nao})} & \textbf{Energia (Ha)} \\
+    \midrule
+    STO-3G   & 2  & $-1{,}116759$ \\
+    cc-pVDZ  & 10 & $-1{,}128700$ \\
+    cc-pVTZ  & 28 & $-1{,}132968$ \\
+    \midrule
+    \multicolumn{2}{l}{\emph{limite Hartree-Fock}} & $\approx -1{,}1336$ \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{caixadica}
+Uma energia mais baixa é sempre melhor? No método Hartree-Fock (e em qualquer
+método \emph{variacional}), \textbf{sim}: o \emph{princípio variacional} garante
+que a energia calculada é sempre um limite \emph{superior} à energia verdadeira.
+Logo, entre duas bases, a que fornece a energia mais baixa é a mais próxima da
+realidade. Guarde esse princípio: ele é a bússola que orienta a escolha de bases
+e métodos.
+\end{caixadica}
+
+%---------------------------------------------------------------------
+\section{Executando Hartree-Fock: o Objeto \code{SCF}}
+\label{sec:scf}
+%---------------------------------------------------------------------
+
+Com o sistema definido, escolhemos o método. O \textbf{Hartree-Fock} (HF) é o
+ponto de partida de quase toda a química quântica. Sua ideia central é uma
+aproximação de \emph{campo médio}: em vez de tratar a repulsão instantânea entre
+cada par de elétrons --- um problema intratável ---, supõe-se que cada elétron se
+move no campo \emph{médio} gerado por todos os outros. Como esse campo depende dos
+próprios orbitais que queremos encontrar, o problema é resolvido de forma
+\textbf{iterativa e autoconsistente}: daí o nome \emph{Self-Consistent Field}
+(SCF). O Capítulo~4 detalhará o formalismo; por ora, basta saber que o \pyscf{}
+faz todo o trabalho pesado.
+
+O \pyscf{} oferece três ``sabores'' de Hartree-Fock, e escolher o certo depende
+do spin do sistema:
+
+\begin{itemize}[leftmargin=*]
+  \item \code{scf.RHF} --- \emph{Restricted} HF: para sistemas de camada fechada
+        (\code{spin=0}), em que todos os elétrons estão emparelhados. É o caso da
+        H$_2$.
+  \item \code{scf.ROHF} --- \emph{Restricted Open-shell} HF: para sistemas com
+        elétrons desemparelhados que se deseja tratar de forma restrita. É a
+        escolha natural para átomos como H e Si.
+  \item \code{scf.UHF} --- \emph{Unrestricted} HF: permite que elétrons de spin
+        $\alpha$ e $\beta$ ocupem orbitais espaciais diferentes. Essencial para
+        radicais e para os cálculos de acoplamento de troca da Parte~III.
+\end{itemize}
+
+\noindent
+Criado o objeto de método, o cálculo é disparado com \code{kernel()}, que devolve a
+energia total em hartree e a armazena também no atributo \code{mf.e\_tot}:
+
+\begin{lstlisting}[style=python,caption={Um cálculo Hartree-Fock completo da H$_2$.},label={lst:hfcompleto}]
+from pyscf import gto, scf
+
+mol = gto.M(atom='H 0 0 0; H 0 0 0.74', basis='sto-3g')
+
+mf = scf.RHF(mol)
+energia = mf.kernel()
+
+print("Energia total: %.8f Ha" % energia)
+print("Confirmando via atributo: %.8f Ha" % mf.e_tot)
+\end{lstlisting}
+
+\begin{lstlisting}[style=console]
+converged SCF energy = -1.11675930739643
+Energia total: -1.11675931 Ha
+Confirmando via atributo: -1.11675931 Ha
+\end{lstlisting}
+
+\noindent
+A linha \code{converged SCF energy = ...} é impressa pelo próprio \pyscf{}: ela
+anuncia que o ciclo autoconsistente convergiu e informa a energia final. Nossa
+molécula H$_2$ tem energia Hartree-Fock de $-1{,}11675931$~Ha.
+
+%---------------------------------------------------------------------
+\section{Interpretando a Saída}
+\label{sec:saida}
+%---------------------------------------------------------------------
+
+Obter um número é fácil; \emph{confiar} nele exige ler a saída com olhos críticos.
+Aumentando o nível de detalhe (\code{verbose=4}), o \pyscf{} revela o andamento do
+ciclo SCF. Para tornar a leitura instrutiva, usemos a molécula de água, cujo SCF
+leva alguns ciclos para convergir (a H$_2$, minúscula, converge quase de
+imediato):
+
+\begin{lstlisting}[style=python,caption={Acompanhando a convergência do SCF.},label={lst:h2o}]
+from pyscf import gto, scf
+
+mol = gto.M(atom='''O  0.000  0.000  0.117
+                    H  0.000  0.757 -0.469
+                    H  0.000 -0.757 -0.469''',
+            basis='sto-3g', verbose=4)
+
+mf = scf.RHF(mol)
+mf.kernel()
+\end{lstlisting}
+
+\noindent
+Entre as muitas linhas da saída, as mais importantes são o registro dos ciclos:
+
+\begin{lstlisting}[style=console]
+cycle= 1 E= -74.9128050859  delta_E= -0.0755   |g|= 0.37     |ddm|= 1.69
+cycle= 2 E= -74.9624186902  delta_E= -0.0496   |g|= 0.0424   |ddm|= 0.56
+cycle= 3 E= -74.9629204358  delta_E= -0.000502 |g|= 0.00832  |ddm|= 0.0432
+cycle= 4 E= -74.9629466547  delta_E= -2.62e-05 |g|= 6.37e-05 |ddm|= 0.015
+cycle= 5 E= -74.9629466564  delta_E= -1.67e-09 |g|= 1.46e-05 |ddm|= 0.0001
+cycle= 6 E= -74.9629466565  delta_E= -1.58e-10 |g|= 3.45e-06 |ddm|= 4.2e-05
+converged SCF energy = -74.9629466565387
+\end{lstlisting}
+
+\noindent
+Cada linha é uma iteração do campo autoconsistente. Três colunas contam a
+história da convergência:
+
+\begin{itemize}[leftmargin=*]
+  \item \code{E} --- a energia total naquele ciclo. Note-a \emph{descendo}
+        monotonamente e estabilizando.
+  \item \code{delta\_E} --- a variação de energia em relação ao ciclo anterior. É o
+        critério principal: quando cai abaixo de $\sim 10^{-9}$~Ha, o cálculo
+        convergiu.
+  \item \code{|g|} --- a norma do gradiente (o quanto os orbitais ainda ``querem''
+        mudar). Também deve tender a zero.
+\end{itemize}
+
+\begin{caixaatencao}
+\textbf{Convergiu $\neq$ correto.} A mensagem \code{converged SCF energy} garante
+apenas que o algoritmo encontrou uma solução autoconsistente --- não que ela seja
+a solução fisicamente desejada nem que a base seja adequada. E o pior cenário é o
+oposto: se aparecer \code{SCF not converged}, o número reportado
+\textbf{não tem valor} e deve ser descartado. Sempre confira se o cálculo
+convergiu antes de usar qualquer resultado.
+\end{caixaatencao}
+
+\subsection{Energias orbitais, ocupações e o \emph{gap}}
+
+Além da energia total, o objeto de método guarda os \textbf{orbitais moleculares}
+resultantes. Dois atributos são especialmente úteis: \code{mf.mo\_energy} (as
+energias dos orbitais, em ordem crescente) e \code{mf.mo\_occ} (quantos elétrons
+ocupam cada orbital). Vejamos para a água:
+
+\begin{lstlisting}[style=python,caption={Lendo orbitais, ocupações e o \emph{gap} HOMO--LUMO.},label={lst:orbitais}]
+import numpy as np
+
+print("Energias orbitais (Ha):", np.round(mf.mo_energy, 4))
+print("Ocupacoes:", mf.mo_occ)
+
+# HOMO = ultimo orbital ocupado; LUMO = primeiro vazio
+n_ocupados = int(mf.mo_occ.sum() // 2)      # 5 orbitais duplamente ocupados
+homo = mf.mo_energy[n_ocupados - 1]
+lumo = mf.mo_energy[n_ocupados]
+gap = lumo - homo
+
+print("HOMO: %.4f Ha   LUMO: %.4f Ha" % (homo, lumo))
+print("Gap HOMO-LUMO: %.4f Ha = %.2f eV" % (gap, gap * 27.2114))
+\end{lstlisting}
+
+\begin{lstlisting}[style=console]
+Energias orbitais (Ha): [-20.2418  -1.2684  -0.6179  -0.453   -0.3912   0.6056   0.7422]
+Ocupacoes: [2. 2. 2. 2. 2. 0. 0.]
+HOMO: -0.3912 Ha   LUMO: 0.6056 Ha
+Gap HOMO-LUMO: 0.9968 Ha = 27.12 eV
+\end{lstlisting}
+
+\noindent
+A leitura é rica. A água tem 10 elétrons, distribuídos em 5 orbitais duplamente
+ocupados (ocupação \code{2.}), enquanto os 2 orbitais restantes estão vazios
+(\code{0.}). O primeiro orbital, com energia profundíssima ($-20{,}24$~Ha),
+é essencialmente o caroço $1s$ do oxigênio. O HOMO
+(\emph{Highest Occupied Molecular Orbital}) e o LUMO (\emph{Lowest Unoccupied})
+delimitam o \emph{gap} --- a energia mínima para excitar um elétron. Esse \emph{gap}
+será uma das grandezas centrais do Projeto Âncora: no nanocristal de silício, é
+ele que traduz o confinamento quântico.
+
+\begin{caixadica}
+Quer todos os resultados de uma vez? O método \code{mf.analyze()} imprime um
+relatório completo --- energias orbitais, ocupações, cargas atômicas e momentos de
+dipolo --- num único comando. É uma forma rápida de ``radiografar'' um cálculo
+recém-concluído.
+\end{caixadica}
+
+%---------------------------------------------------------------------
+\section{Mãos à Obra: do Átomo de Hidrogênio à Molécula H$_2$}
+\label{sec:maos2}
+%---------------------------------------------------------------------
+
+Hora de calcular por conta própria. Faremos dois cálculos clássicos e
+compararemos os resultados com valores conhecidos --- o hábito que separa o
+usuário crítico do apertador de botões.
+
+\begin{caixamaos}
+\textbf{Objetivo:} calcular a energia do átomo de H e da molécula H$_2$, e
+observar como a energia do átomo de H se aproxima do valor exato ($-0{,}5$~Ha)
+à medida que a base melhora.
+
+\vspace{0.4cm}
+\textbf{Parte A --- O átomo de hidrogênio.} Com um único elétron, o átomo de H é
+de camada aberta: use \code{spin=1} e \code{ROHF}.
+
+\begin{lstlisting}[style=python]
+from pyscf import gto, scf
+
+for base in ['sto-3g', 'cc-pvdz', 'cc-pvtz']:
+    mol = gto.M(atom='H 0 0 0', basis=base, spin=1)
+    energia = scf.ROHF(mol).kernel()
+    print("%-8s -> %.6f Ha" % (base, energia))
+\end{lstlisting}
+
+\begin{lstlisting}[style=console]
+sto-3g   -> -0.466582 Ha
+cc-pvdz  -> -0.499278 Ha
+cc-pvtz  -> -0.499810 Ha
+\end{lstlisting}
+
+Observe a energia subindo... digo, \emph{descendo} rumo a $-0{,}5$~Ha, o valor
+exato. Com a base mínima STO-3G o erro é grande ($\sim 7\%$); com cc-pVTZ, cai
+para $0{,}04\%$. A química quântica computacional é, em boa medida, a arte de
+controlar esse tipo de erro.
+
+\vspace{0.4cm}
+\textbf{Parte B --- A molécula H$_2$.} Camada fechada: \code{spin=0} e \code{RHF}.
+
+\begin{lstlisting}[style=python]
+from pyscf import gto, scf
+
+mol = gto.M(atom='H 0 0 0; H 0 0 0.74', basis='cc-pvdz')
+mf = scf.RHF(mol)
+energia = mf.kernel()
+
+print("Energia da H2: %.6f Ha" % energia)
+print("HOMO: %.4f Ha" % mf.mo_energy[0])
+\end{lstlisting}
+
+\begin{lstlisting}[style=console]
+converged SCF energy = -1.12870045...
+Energia da H2: -1.128700 Ha
+HOMO: -0.5924 Ha
+\end{lstlisting}
+
+Compare com a energia dos dois átomos de H isolados ($2 \times -0{,}499 =
+-0{,}998$~Ha na mesma base): a H$_2$ é bem \emph{mais} estável, e a diferença é,
+essencialmente, a energia da ligação química.
+\end{caixamaos}
+
+\begin{caixaatencao}
+\textbf{Camada fechada vs.\ aberta.} Se você tentar rodar \code{scf.RHF} num átomo
+de H com \code{spin=1}, o \pyscf{} reclamará --- RHF pressupõe todos os elétrons
+emparelhados. E se esquecer o \code{spin=1} (deixando o padrão \code{spin=0}) num
+sistema de número ímpar de elétrons, receberá um erro de consistência. Regra
+prática: \textbf{conte os elétrons desemparelhados e informe-os em \code{spin}}.
+\end{caixaatencao}
+
+%---------------------------------------------------------------------
+\begin{caixaancora}
+\textbf{Etapa 0 (conclusão) --- O primeiro cálculo do átomo de silício.}
+
+O átomo de silício é o alicerce do nosso nanocristal. Antes de agrupá-lo às
+centenas, precisamos saber descrevê-lo isoladamente. Silício tem 14 elétrons e
+configuração $[\mathrm{Ne}]\,3s^2\,3p^2$; os dois elétrons $3p$ ocupam orbitais
+distintos (estado fundamental $^3P$), logo há \textbf{dois elétrons
+desemparelhados}: \code{spin=2}.
+
+\vspace{0.3cm}
+\textbf{Sua tarefa.} No \emph{notebook} \code{projeto\_ancora\_SiP.ipynb},
+acrescente uma célula com o cálculo abaixo e execute-o.
+
+\begin{lstlisting}[style=python]
+from pyscf import gto, scf
+
+# Atomo de silicio isolado: 14 eletrons, estado fundamental 3P (spin=2)
+mol_si = gto.M(atom='Si 0 0 0', basis='sto-3g', spin=2)
+print("Eletrons:", mol_si.nelectron, " AOs:", mol_si.nao)
+
+mf_si = scf.ROHF(mol_si)
+e_si = mf_si.kernel()
+print("Energia do atomo de Si (STO-3G): %.6f Ha" % e_si)
+\end{lstlisting}
+
+\begin{lstlisting}[style=console]
+Eletrons: 14  AOs: 9
+converged SCF energy = -285.466211172452
+Energia do atomo de Si (STO-3G): -285.466211 Ha
+\end{lstlisting}
+
+Repetindo com a base \code{def2-svp} (18 funções de base, mais precisa), a energia
+desce para $-288{,}749819$~Ha --- coerente com o princípio variacional. Anote os
+dois valores no \emph{notebook}.
+
+\vspace{0.3cm}
+\textbf{Marco atingido.} Com este cálculo, a Parte~0 está completa: você tem um
+ambiente funcional, domina o fluxo de trabalho do \pyscf{} e executou seu primeiro
+cálculo do átomo que protagonizará todo o livro. Na Parte~I, deixaremos de tratar
+um átomo isolado e começaremos a \emph{construir o nanocristal}, agrupando dezenas
+de átomos de silício e inserindo o doador de fósforo.
+\end{caixaancora}
+
+%---------------------------------------------------------------------
+\section*{Resumo do Capítulo}
+\addcontentsline{toc}{section}{Resumo do Capítulo}
+%---------------------------------------------------------------------
+
+\begin{itemize}[leftmargin=*]
+  \item Todo cálculo PySCF segue três passos: \textbf{definir o sistema}
+        (\code{gto.M} $\rightarrow$ objeto \code{Mole}), \textbf{escolher o método}
+        (\code{scf.RHF/ROHF/UHF}) e \textbf{executar} (\code{kernel()}).
+  \item No \code{Mole}, a geometria vai no argumento \code{atom} (símbolo + $x\,y\,z$,
+        em ångström por padrão); \code{charge} é a carga e \code{spin} é o número de
+        elétrons \emph{desemparelhados} ($2S$), não a multiplicidade.
+  \item Uma \textbf{base} expande os orbitais em funções gaussianas fixas. Bases
+        maiores (STO-3G $\rightarrow$ cc-pVDZ $\rightarrow$ cc-pVTZ) dão energias
+        menores e mais precisas, ao custo de mais funções (\code{nao}).
+  \item Pelo \textbf{princípio variacional}, a energia HF é sempre um limite
+        superior à energia verdadeira: menor é melhor.
+  \item Escolha \code{RHF} para camada fechada, \code{ROHF}/\code{UHF} para camada
+        aberta (átomos, radicais).
+  \item Sempre verifique a \textbf{convergência} (\code{converged SCF energy}) antes
+        de confiar num resultado; leia \code{mo\_energy} e \code{mo\_occ} para obter
+        HOMO, LUMO e o \emph{gap}.
+  \item \textbf{Projeto Âncora:} calculamos o átomo de silício isolado
+        ($-285{,}466$~Ha em STO-3G), encerrando a Parte~0.
+\end{itemize}
+
+%---------------------------------------------------------------------
+\section*{Exercícios}
+\addcontentsline{toc}{section}{Exercícios}
+%---------------------------------------------------------------------
+
+\begin{enumerate}[leftmargin=*,label=\textbf{2.\arabic*}]
+  \item \textbf{Camada fechada.} Calcule a energia Hartree-Fock do átomo de hélio
+        (\code{atom='He 0 0 0'}, \code{spin=0}) com \code{RHF} nas bases STO-3G e
+        cc-pVTZ. Compare com o valor de referência ($\approx -2{,}86$~Ha no limite
+        HF) e comente qual base chega mais perto.
+
+  \item \textbf{O papel do \code{spin}.} Tente calcular o átomo de hidrogênio com
+        \code{scf.RHF} e \code{spin=0}. Leia a mensagem de erro e explique, em uma
+        frase, por que ela ocorre. Em seguida, corrija usando \code{spin=1} e
+        \code{ROHF}.
+
+  \item \textbf{Curva de dissociação (esboço).} Usando um laço \code{for} sobre uma
+        lista de distâncias H--H (por exemplo, $0{,}5$ a $2{,}0$~Å em passos de
+        $0{,}25$), calcule e imprima a energia RHF/STO-3G da H$_2$ em cada
+        distância. Em qual distância a energia é mínima?
+
+  \item \textbf{Inspecionando orbitais.} Para a molécula de água da
+        Listagem~\ref{lst:h2o}, imprima \code{mf.mo\_occ} e confirme que há 5
+        orbitais ocupados. Calcule o \emph{gap} HOMO--LUMO em eV.
+
+  \item \textbf{Efeito da base no gap.} Calcule o \emph{gap} HOMO--LUMO da H$_2$
+        nas bases STO-3G e cc-pVDZ. O \emph{gap} aumenta ou diminui ao melhorar a
+        base? Proponha uma explicação.
+
+  \item \textbf{Projeto Âncora.} No seu \emph{notebook}, calcule o átomo de
+        silício (\code{spin=2}, \code{ROHF}) nas bases \code{sto-3g} e
+        \code{def2-svp}. Registre numa célula de texto: (a) a energia em cada base;
+        (b) o número de funções de base (\code{nao}); (c) por que a base maior
+        fornece energia mais baixa.
+\end{enumerate}

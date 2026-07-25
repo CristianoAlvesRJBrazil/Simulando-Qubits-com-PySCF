@@ -1,0 +1,85 @@
+%=====================================================================
+%  Simulando Qubits com PySCF: Uma Jornada do Zero aos Pontos
+%  Quanticos para Computacao Quantica
+%  Autor: Cristiano Alves
+%
+%  >>> AMOSTRA PUBLICA <<<
+%  Este arquivo compila apenas a Parte 0 e a Parte I (Capitulos 1 a 5),
+%  destinadas a divulgacao. O manuscrito completo nao integra este
+%  repositorio.
+%
+%  Compile com:
+%      latexmk -pdf Livro_PySCF_Amostra.tex
+%=====================================================================
+
+\input{tex/preambulo}
+
+%=====================================================================
+\begin{document}
+\frenchspacing
+
+%---------------------------------------------------------------------
+%  Capa
+%---------------------------------------------------------------------
+\input{tex/capa}
+
+%---------------------------------------------------------------------
+%  Pre-textual
+%---------------------------------------------------------------------
+\frontmatter
+\pagestyle{plain}
+
+\input{tex/prefacio}
+\input{tex/como_usar}
+
+\cleardoublepage
+\tableofcontents
+
+%---------------------------------------------------------------------
+%  Corpo da amostra
+%---------------------------------------------------------------------
+\mainmatter
+\pagestyle{fancy}
+
+% ---------------- Parte 0: Preparando o Laboratorio ------------------
+\input{tex/parte0}
+\input{tex/cap01_python}
+\input{tex/cap02_primeiro_calculo}
+
+% ---------------- Parte I: Estrutura Eletronica ----------------------
+\input{tex/parte1}
+\input{tex/cap03_nanocristal}
+\input{tex/cap04_hartree_fock}
+\input{tex/cap05_dft}
+
+%---------------------------------------------------------------------
+%  Fim da amostra
+%---------------------------------------------------------------------
+\cleardoublepage
+\thispagestyle{empty}
+\begin{center}
+  \vspace*{3cm}
+  {\color{azulpyscf}\rule{0.8\textwidth}{1.5pt}}\\[0.8cm]
+  {\LARGE\sffamily\bfseries\color{azulpyscf} Fim da amostra}\\[0.8cm]
+  {\color{azulpyscf}\rule{0.8\textwidth}{1.5pt}}\\[1.2cm]
+
+  \begin{minipage}{0.8\textwidth}
+  \large
+  Você concluiu a \textbf{Parte~0} e a \textbf{Parte~I}: seu ambiente está
+  montado, você executou cálculos de estrutura eletrônica de verdade e já
+  construiu o nanocristal de Si:P que hospeda o \qubit{}.
+
+  \vspace{0.5cm}
+  A obra completa prossegue com os parâmetros magnéticos do \qubit{}
+  (acoplamento hiperfino e tensor~\emph{g}), o acoplamento de troca entre
+  dois \qubit{}s, os tempos de decoerência e o controle elétrico por
+  eletrodos de porta.
+
+  \vspace{0.5cm}
+  \centering
+  \textit{Códigos e \emph{notebooks} dos exemplos estão disponíveis em}\\
+  \texttt{github.com/CristianoAlvesRJBrazil/Simulando-Qubits-com-PySCF}
+  \end{minipage}
+\end{center}
+
+\end{document}

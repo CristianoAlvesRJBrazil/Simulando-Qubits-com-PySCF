@@ -1,0 +1,144 @@
+%=====================================================================
+%  Simulando Qubits com PySCF: Uma Jornada do Zero aos Pontos
+%  Quanticos para Computacao Quantica
+%  Autor: Cristiano Alves
+%
+%  Arquivo principal do livro. Compile com:
+%      latexmk -pdf Livro_PySCF.tex
+%  ou  pdflatex Livro_PySCF.tex  (2x, para sumario/referencias)
+%=====================================================================
+\documentclass[11pt,a4paper,openany]{book}
+
+%--------------------- Codificacao e idioma --------------------------
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazil]{babel}
+\usepackage{lmodern}
+\usepackage[zerostyle=b,scaled=.85]{newtxtt} % monospace legivel
+\usepackage{microtype}
+
+%--------------------- Matematica e graficos -------------------------
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{mathtools}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{enumitem}
+
+%--------------------- Layout de pagina ------------------------------
+\usepackage{geometry}
+\geometry{left=3cm,right=2.5cm,top=2.8cm,bottom=2.8cm}
+\usepackage{emptypage}
+\linespread{1.05}
+
+%--------------------- Cabecalhos ------------------------------------
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[LE]{\small\itshape\nouppercase{\leftmark}}
+\fancyhead[RO]{\small\itshape\nouppercase{\rightmark}}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+%--------------------- Cores -----------------------------------------
+\usepackage{xcolor}
+\definecolor{azulpyscf}{RGB}{18,72,120}
+\definecolor{azulclaro}{RGB}{232,240,248}
+\definecolor{cinzacodigo}{RGB}{247,247,247}
+\definecolor{verdecom}{RGB}{60,120,60}
+\definecolor{roxokw}{RGB}{140,40,140}
+\definecolor{laranjastr}{RGB}{170,80,20}
+\definecolor{verdeok}{RGB}{20,110,60}
+\definecolor{vermelhoaviso}{RGB}{150,30,30}
+
+%--------------------- Capitulos estilizados -------------------------
+\usepackage[Sonny]{fncychap}
+\ChNameVar{\Large\sffamily\bfseries\color{azulpyscf}}
+\ChNumVar{\Huge\sffamily\bfseries\color{azulpyscf}}
+\ChTitleVar{\Large\sffamily\bfseries\color{azulpyscf}}
+
+%--------------------- Codigo Python (listings) ----------------------
+\usepackage{listings}
+\lstset{
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{roxokw}\bfseries,
+  commentstyle=\color{verdecom}\itshape,
+  stringstyle=\color{laranjastr},
+  numberstyle=\tiny\color{gray},
+  numbers=left,
+  numbersep=8pt,
+  backgroundcolor=\color{cinzacodigo},
+  frame=single,
+  rulecolor=\color{gray!40},
+  framesep=6pt,
+  breaklines=true,
+  showstringspaces=false,
+  tabsize=4,
+  columns=fullflexible,
+  keepspaces=true,
+  inputencoding=utf8,
+  extendedchars=true,
+  literate=%
+    {á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1
+    {Á}{{\'A}}1 {É}{{\'E}}1 {Í}{{\'I}}1 {Ó}{{\'O}}1 {Ú}{{\'U}}1
+    {â}{{\^a}}1 {ê}{{\^e}}1 {ô}{{\^o}}1 {Â}{{\^A}}1 {Ê}{{\^E}}1
+    {ã}{{\~a}}1 {õ}{{\~o}}1 {Ã}{{\~A}}1 {Õ}{{\~O}}1
+    {à}{{\`a}}1 {ç}{{\c c}}1 {Ç}{{\c C}}1 {º}{{\textordmasculine}}1
+    {ª}{{\textordfeminine}}1
+}
+\lstdefinestyle{python}{language=Python}
+\lstdefinestyle{console}{
+  language=bash,
+  numbers=none,
+  keywordstyle=\color{black},
+  backgroundcolor=\color{black!88},
+  basicstyle=\ttfamily\small\color{white},
+  frame=single,
+  rulecolor=\color{black},
+}
+
+%--------------------- Caixas didaticas ------------------------------
+\usepackage[most]{tcolorbox}
+
+\newtcolorbox{caixanota}{
+  colback=azulclaro, colframe=azulpyscf, coltitle=white,
+  fonttitle=\bfseries\sffamily, title=Nota,
+  boxrule=0.6pt, arc=2pt, left=6pt,right=6pt,top=4pt,bottom=4pt,
+  breakable, enhanced}
+
+\newtcolorbox{caixadica}{
+  colback=green!5, colframe=verdeok, coltitle=white,
+  fonttitle=\bfseries\sffamily, title=Dica,
+  boxrule=0.6pt, arc=2pt, left=6pt,right=6pt,top=4pt,bottom=4pt,
+  breakable, enhanced}
+
+\newtcolorbox{caixaatencao}{
+  colback=red!5, colframe=vermelhoaviso, coltitle=white,
+  fonttitle=\bfseries\sffamily, title=Atenção,
+  boxrule=0.6pt, arc=2pt, left=6pt,right=6pt,top=4pt,bottom=4pt,
+  breakable, enhanced}
+
+\newtcolorbox{caixamaos}[1][Mãos à obra]{
+  colback=orange!6, colframe=orange!70!black, coltitle=white,
+  fonttitle=\bfseries\sffamily, title={#1},
+  boxrule=0.8pt, arc=2pt, left=6pt,right=6pt,top=4pt,bottom=4pt,
+  breakable, enhanced}
+
+\newtcolorbox{caixaancora}{
+  colback=azulpyscf!8, colframe=azulpyscf, coltitle=white,
+  fonttitle=\bfseries\sffamily, title={Projeto Âncora},
+  boxrule=1pt, arc=2pt, left=6pt,right=6pt,top=4pt,bottom=4pt,
+  breakable, enhanced}
+
+%--------------------- Comandos auxiliares ---------------------------
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\pyscf}{\textsf{PySCF}}
+\newcommand{\numpy}{\textsf{NumPy}}
+\newcommand{\python}{\textsf{Python}}
+\newcommand{\qubit}{\emph{qubit}}
+\newcommand{\Mole}{\texttt{Mole}}
+
+%--------------------- Hyperref (por ultimo) -------------------------
+\usepackage[hidelinks,colorlinks=true,linkcolor=azulpyscf,
+            urlcolor=azulpyscf,citecolor=azulpyscf]{hyperref}

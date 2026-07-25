@@ -30,3 +30,33 @@ Thumbs.db
 *Cópia*
 *Copia*
 *copy*
+
+#=====================================================================
+# MANUSCRITO PRIVADO
+#
+# O repositorio publico hospeda apenas os codigos, o material de
+# divulgacao e a AMOSTRA (Parte 0 + Parte I, capitulos 1 a 5),
+# compilada por livro/Livro_PySCF_Amostra.tex.
+#
+# O manuscrito completo permanece somente na maquina do autor.
+# NAO remova estas linhas sem intencao deliberada de publicar o livro.
+#=====================================================================
+
+# Arquivo principal e PDF do livro completo
+livro/Livro_PySCF.tex
+livro/Livro_PySCF.pdf
+
+# Aberturas de parte ainda nao divulgadas
+livro/tex/parte2.tex
+livro/tex/parte3.tex
+livro/tex/parte4.tex
+
+# Capitulos 6 a 10 (conteudo nao divulgado)
+livro/tex/cap06_*.tex
+livro/tex/cap07_*.tex
+livro/tex/cap08_*.tex
+livro/tex/cap09_*.tex
+livro/tex/cap10_*.tex
+
+# PDFs de trabalho / versoes intermediarias
+livro/Livro_PySCF_[0-9]*.pdf

@@ -1,0 +1,534 @@
+%=====================================================================
+\chapter{Teoria do Funcional da Densidade: Corrigindo o \emph{Gap}}
+\label{cap:dft}
+%=====================================================================
+
+O Capítulo~4 terminou com um incômodo produtivo. Nosso Hartree-Fock reproduziu
+com fidelidade a \emph{física} do confinamento --- o \emph{gap} cai à medida que o
+nanocristal cresce ---, mas errou a \emph{quantidade} por um fator de quatro:
+\emph{gaps} de $13$--$17$~eV onde o experimento mede $3$--$4$~eV. A culpada tem
+nome: a \textbf{correlação eletrônica}, que o Hartree-Fock ignora por construção.
+
+Este capítulo apresenta a ferramenta que domina a química quântica moderna
+justamente por incluir a correlação a um custo comparável ao do Hartree-Fock: a
+\textbf{Teoria do Funcional da Densidade} (DFT, de \emph{Density Functional
+Theory}). Veremos por que ela funciona, escolheremos um \emph{funcional} de troca
+e correlação, e a colocaremos para trabalhar no \pyscf{}. Ao final, o \emph{gap}
+do nosso ponto quântico terá encolhido para valores fisicamente razoáveis --- e,
+como bônus, extrairemos a \textbf{densidade de spin} do doador, a grandeza que
+abrirá a Parte~II do livro.
+
+%---------------------------------------------------------------------
+\section{Por Que o Hartree-Fock Não Basta}
+\label{sec:porquedft}
+%---------------------------------------------------------------------
+
+Recordemos o pecado original do Hartree-Fock. Ele descreve cada elétron movendo-se
+no \textbf{campo médio} de todos os outros, como se a nuvem eletrônica fosse um
+borrão estático. A realidade é mais sutil: os elétrons, por se repelirem, executam
+uma dança coordenada --- quando um se aproxima de certa região, os demais se
+afastam. Essa correlação instantânea de seus movimentos \emph{abaixa} a energia do
+sistema. A diferença entre a energia exata e a de Hartree-Fock é, por definição, a
+\textbf{energia de correlação}:
+\begin{equation}
+  E_{\text{corr}} = E_{\text{exata}} - E_{\text{HF}} \;<\; 0.
+  \label{eq:ecorr}
+\end{equation}
+
+\noindent
+Em módulo, $E_{\text{corr}}$ costuma valer apenas $\sim 1\%$ da energia total ---
+mas é justamente essa fração que governa as grandezas que nos interessam: energias
+de ligação, barreiras de reação e, no nosso caso, o \emph{gap}. Ignorá-la, como
+faz o Hartree-Fock, empurra sistematicamente os orbitais virtuais para cima e
+infla o \emph{gap}.
+
+\begin{caixanota}
+\textbf{Duas rotas para a correlação.} A química quântica tem, historicamente,
+dois caminhos para capturar $E_{\text{corr}}$. O primeiro são os métodos
+\emph{pós-Hartree-Fock} (MP2, \emph{Coupled Cluster}, Interação de
+Configurações), que partem da função de onda HF e a corrigem sistematicamente ---
+precisos, porém caríssimos, com custos que escalam como $N^5$, $N^6$ ou pior.
+Impensáveis para um nanocristal de centenas de elétrons. O segundo caminho, que
+seguiremos, é o DFT: abandona a função de onda como objeto central e reformula
+todo o problema em torno da \textbf{densidade eletrônica}, alcançando precisão
+comparável a um custo próximo ao do próprio Hartree-Fock.
+\end{caixanota}
+
+%---------------------------------------------------------------------
+\section{A Ideia Central: da Função de Onda à Densidade}
+\label{sec:ideiadft}
+%---------------------------------------------------------------------
+
+A função de onda de $N$ elétrons, $\Psi(\mathbf{r}_1,\dots,\mathbf{r}_N)$, é um
+objeto monstruoso: depende de $3N$ coordenadas espaciais. Para o nosso nanocristal
+de mil elétrons, são três mil variáveis --- um objeto que nenhum computador jamais
+armazenará por completo.
+
+A DFT nasce de uma percepção revolucionária, formalizada em 1964 por
+\textbf{Hohenberg e Kohn}: toda a informação do estado fundamental está contida na
+humilde \textbf{densidade eletrônica} $\rho(\mathbf{r})$ --- a probabilidade de
+encontrar um elétron em cada ponto do espaço. E $\rho$ depende de apenas
+\textbf{três} coordenadas, $(x,y,z)$, não importa quantos elétrons existam. Os dois
+teoremas de Hohenberg-Kohn garantem que:
+
+\begin{enumerate}[leftmargin=*]
+  \item A energia do estado fundamental é um \textbf{funcional único} da densidade,
+        $E = E[\rho]$: conhecida $\rho(\mathbf{r})$, tudo o mais está determinado.
+  \item Esse funcional atinge seu mínimo na densidade \emph{verdadeira} do estado
+        fundamental --- fornecendo um princípio variacional para encontrá-la.
+\end{enumerate}
+
+\begin{caixanota}
+\textbf{Funcional?} Uma \emph{função} recebe um número e devolve um número
+($f(x) = x^2$). Um \textbf{funcional} recebe uma \emph{função inteira} e devolve um
+número. A energia $E[\rho]$ é um funcional: alimenta-se com a função
+$\rho(\mathbf{r})$ (definida em todo o espaço) e produz um único valor, a energia
+em hartree. A notação com colchetes, $E[\rho]$, sinaliza essa distinção.
+\end{caixanota}
+
+O problema é que os teoremas garantem a \emph{existência} do funcional $E[\rho]$
+mas não revelam sua \emph{forma}. Em especial, ninguém conhece a expressão exata
+para a energia cinética em termos apenas de $\rho$. É aqui que entra a engenhosa
+solução que tornou a DFT prática.
+
+%---------------------------------------------------------------------
+\section{As Equações de Kohn-Sham}
+\label{sec:kohnsham}
+%---------------------------------------------------------------------
+
+Em 1965, \textbf{Kohn e Sham} deram o passo decisivo. Em vez de buscar a energia
+cinética do sistema real de elétrons interagentes, eles introduziram um
+\textbf{sistema auxiliar fictício} de elétrons \emph{não} interagentes, construído
+para ter \textbf{exatamente a mesma densidade} $\rho(\mathbf{r})$ do sistema real.
+Nesse sistema fictício, os elétrons ocupam orbitais --- os \textbf{orbitais de
+Kohn-Sham} $\psi_i$ --- e a energia cinética se calcula trivialmente, como no
+Hartree-Fock.
+
+A densidade se reconstrói a partir desses orbitais,
+\begin{equation}
+  \rho(\mathbf{r}) = \sum_i^{\text{ocupados}} |\psi_i(\mathbf{r})|^2,
+  \label{eq:rhoKS}
+\end{equation}
+e os orbitais obedecem a equações de aparência familiar, as \textbf{equações de
+Kohn-Sham}:
+\begin{equation}
+  \left[ -\tfrac{1}{2}\nabla^2 + v_{\text{ext}}(\mathbf{r})
+         + v_{\text{H}}[\rho](\mathbf{r})
+         + v_{\text{xc}}[\rho](\mathbf{r}) \right] \psi_i
+  = \varepsilon_i\,\psi_i.
+  \label{eq:ks}
+\end{equation}
+
+\noindent
+Os três primeiros termos são conhecidos e exatos: a energia cinética, a atração
+$v_{\text{ext}}$ pelos núcleos e a repulsão eletrostática clássica $v_{\text{H}}$
+(o potencial de Hartree). \textbf{Toda a nossa ignorância foi empurrada para o
+último termo}, $v_{\text{xc}}$, o \textbf{potencial de troca e correlação}, derivado
+do funcional $E_{\text{xc}}[\rho]$. Ele contém tudo o que é quântico e difícil: a
+troca (a antissimetria de Pauli) \emph{e} a correlação que faltava ao
+Hartree-Fock.
+
+\begin{caixanota}
+\textbf{A analogia com o SCF.} A Equação~\ref{eq:ks} é estruturalmente idêntica às
+equações de Roothaan-Hall do Capítulo~4: um problema de autovalores em que o
+operador depende da densidade, que depende dos orbitais, que dependem do operador.
+Resolve-se, como o Hartree-Fock, por \textbf{iteração autoconsistente} --- o mesmo
+ciclo SCF, com o mesmo \code{|ddm|} despencando a cada passo. A única novidade é a
+troca do termo de troca exato de Fock pelo funcional $v_{\text{xc}}$. Por isso, do
+ponto de vista do \pyscf{}, migrar de HF para DFT custará uma única linha de
+código.
+\end{caixanota}
+
+\begin{caixaatencao}
+\textbf{A DFT é exata --- na teoria.} As equações de Kohn-Sham seriam
+\emph{exatas} se conhecêssemos o funcional $E_{\text{xc}}[\rho]$ verdadeiro. Mas
+esse funcional universal é desconhecido, e talvez incognoscível em forma fechada.
+Toda DFT prática usa uma \textbf{aproximação} para $E_{\text{xc}}$. É por isso que,
+ao contrário do Coupled Cluster, a DFT não pode ser sistematicamente melhorada:
+escolher um funcional melhor é uma arte guiada por física e validação, não uma
+receita convergente. A próxima seção é sobre essa escolha.
+\end{caixaatencao}
+
+%---------------------------------------------------------------------
+\section{A Escada de Jacob: Escolhendo o Funcional}
+\label{sec:funcionais}
+%---------------------------------------------------------------------
+
+As aproximações para $E_{\text{xc}}$ são tradicionalmente organizadas na
+\textbf{escada de Jacob}, uma metáfora de John Perdew: cada degrau incorpora mais
+informação sobre a densidade, aproximando-se do ``céu'' da precisão química ao
+preço de mais custo.
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{LDA} (\emph{Local Density Approximation}) --- o primeiro degrau.
+        A energia de troca e correlação em cada ponto depende apenas da densidade
+        \emph{local} $\rho(\mathbf{r})$, tomada como a de um gás uniforme de
+        elétrons. Simples e surpreendentemente útil, mas superliga: erra energias
+        de ligação por dezenas de kcal/mol.
+  \item \textbf{GGA} (\emph{Generalized Gradient Approximation}) --- o segundo
+        degrau. Acrescenta a \emph{inclinação} da densidade, o gradiente
+        $\nabla\rho$, corrigindo boa parte dos excessos da LDA. O funcional
+        \textbf{PBE} (Perdew-Burke-Ernzerhof) é o cavalo de batalha desta
+        categoria, quase um padrão universal em física do estado sólido.
+  \item \textbf{meta-GGA} --- o terceiro degrau, que ainda inclui a densidade de
+        energia cinética (ex.: SCAN, TPSS).
+  \item \textbf{Híbridos} --- o quarto degrau, que \emph{mistura} uma fração da
+        troca exata de Hartree-Fock com a troca de um GGA. O célebre \textbf{B3LYP}
+        (20\% de troca HF) domina a química molecular; o \textbf{PBE0} (25\%) é seu
+        equivalente mais físico. Híbridos costumam dar os melhores \emph{gaps}, ao
+        custo de reintroduzir as integrais de troca exata --- mais caras.
+\end{itemize}
+
+\begin{table}[h]
+  \centering
+  \caption{Degraus da escada de Jacob usados neste livro.}
+  \label{tab:funcionais}
+  \begin{tabular}{llll}
+    \toprule
+    \textbf{Degrau} & \textbf{Ingrediente} & \textbf{Exemplo} & \textbf{Custo} \\
+    \midrule
+    LDA      & $\rho$                      & LDA/SVWN & baixo \\
+    GGA      & $\rho, \nabla\rho$          & PBE      & baixo \\
+    meta-GGA & $+\,\tau$ (energia cinética) & SCAN     & médio \\
+    Híbrido  & $+$ troca exata de HF        & B3LYP, PBE0 & alto \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{caixadica}
+\textbf{Qual escolher?} Para uma primeira estimativa rápida e barata, use
+\textbf{PBE}: robusto, universal e sem parâmetros ajustados. Quando o alvo for o
+\emph{gap} ou propriedades eletrônicas finas, suba um degrau e use um híbrido como
+\textbf{B3LYP} ou \textbf{PBE0}. Neste capítulo compararemos os dois para ver, com
+os próprios olhos, o efeito da troca exata sobre o \emph{gap} do ponto quântico.
+\end{caixadica}
+
+%---------------------------------------------------------------------
+\section{DFT no PySCF: o Módulo \code{dft}}
+\label{sec:dftpyscf}
+%---------------------------------------------------------------------
+
+A promessa da caixa de Nota da Seção~\ref{sec:kohnsham} agora se cumpre. Para o
+\pyscf{}, trocar Hartree-Fock por DFT é substituir o módulo \code{scf} pelo módulo
+\code{dft} e informar o funcional desejado no atributo \code{.xc}. Todo o resto ---
+o objeto \Mole{}, o \code{kernel()}, a leitura de \code{mo\_energy} --- permanece
+idêntico ao que já dominamos.
+
+\begin{lstlisting}[style=python,caption={Um cálculo DFT em três linhas.},label={lst:rks}]
+from pyscf import gto, dft
+
+mol = gto.M(atom="H 0 0 0; H 0 0 0.74", basis='sto-3g')
+
+mf = dft.RKS(mol)        # RKS = Restricted Kohn-Sham (camada fechada)
+mf.xc = 'pbe'            # o funcional de troca e correlacao
+energia = mf.kernel()
+
+print("Energia PBE:", energia, "Ha")
+\end{lstlisting}
+
+\noindent
+Onde antes escrevíamos \code{scf.RHF(mol)}, agora escrevemos \code{dft.RKS(mol)} e
+acrescentamos a linha \code{mf.xc = 'pbe'}. A correspondência entre os métodos é
+direta:
+
+\begin{table}[h]
+  \centering
+  \caption{Correspondência entre os métodos de camada fechada e aberta.}
+  \label{tab:hfvsks}
+  \begin{tabular}{lll}
+    \toprule
+    \textbf{Camada} & \textbf{Hartree-Fock} & \textbf{Kohn-Sham (DFT)} \\
+    \midrule
+    Fechada (spin=0)        & \code{scf.RHF}  & \code{dft.RKS} \\
+    Aberta, restrita        & \code{scf.ROHF} & \code{dft.ROKS} \\
+    Aberta, irrestrita      & \code{scf.UHF}  & \code{dft.UKS} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{A malha de integração}
+
+Há uma diferença conceitual que vale mencionar. O termo $E_{\text{xc}}$ não pode ser
+integrado analiticamente como as integrais de dois elétrons do Hartree-Fock; ele é
+avaliado \textbf{numericamente}, sobre uma malha (\emph{grid}) de pontos que envolve
+cada átomo. A densidade da malha controla a precisão:
+
+\begin{lstlisting}[style=python,caption={Ajustando a malha de integração.},label={lst:grid}]
+mf = dft.RKS(mol)
+mf.xc = 'pbe'
+mf.grids.level = 3       # 0 (grosseira) a 9 (finissima); padrao = 3
+energia = mf.kernel()
+\end{lstlisting}
+
+\begin{caixaatencao}
+\textbf{A malha pode trair você.} Uma malha grosseira demais introduz ``ruído
+numérico'' na energia, chegando a impedir a convergência do SCF ou a produzir
+diferenças de energia sem sentido físico. O padrão \code{grids.level = 3} é
+adequado para a maioria dos casos; se um cálculo DFT oscilar ou der energias
+irreprodutíveis, \textbf{aumente a malha} antes de suspeitar de qualquer outra
+coisa. O custo extra costuma valer a tranquilidade.
+\end{caixaatencao}
+
+\begin{caixadica}
+Os nomes de funcionais no \pyscf{} são \emph{strings} e cobrem centenas de opções
+via a biblioteca \emph{Libxc}. Os mais usados: \code{'lda'}, \code{'pbe'},
+\code{'b3lyp'}, \code{'pbe0'}, \code{'scan'}. É possível até combinar componentes
+manualmente (ex.: \code{mf.xc = '0.2*HF + 0.8*B88, LYP'}), mas para nós os nomes
+prontos bastam. Consulte \code{dft.libxc.XC\_CODES} para a lista completa.
+\end{caixadica}
+
+%---------------------------------------------------------------------
+\section{Mãos à Obra: Hartree-Fock \emph{versus} DFT no \emph{Gap}}
+\label{sec:maos5}
+%---------------------------------------------------------------------
+
+Chegou a hora de saldar a dívida do Capítulo~4. Vamos recalcular o \emph{gap} dos
+mesmos nanocristais de silício, agora com PBE e B3LYP, e confrontar os três métodos
+lado a lado. A previsão é clara: a correlação deve \textbf{fechar} o \emph{gap}
+inflado do Hartree-Fock.
+
+\begin{caixamaos}
+\textbf{Objetivo:} calcular o \emph{gap} HOMO--LUMO dos nanocristais de Si:H com
+HF, PBE e B3LYP, e comparar a queda provocada pela correlação.
+
+\begin{lstlisting}[style=python]
+import numpy as np
+from pyscf import gto, scf, dft
+# reutiliza construir_nanocristal e para_xyz do Capitulo 3
+
+def gap_homo_lumo(mf):
+    """Gap HOMO-LUMO (eV) de um objeto SCF/KS de camada fechada ja convergido."""
+    no = int(mf.mo_occ.sum() // 2)
+    return (mf.mo_energy[no] - mf.mo_energy[no - 1]) * 27.2114
+
+def calcula_gaps(diametro):
+    si, h = construir_nanocristal(diametro)
+    mol = gto.M(atom=para_xyz(si, h), basis='sto-3g', verbose=0)
+
+    hf = scf.RHF(mol);           hf.kernel()
+    pbe = dft.RKS(mol);   pbe.xc = 'pbe';   pbe.kernel()
+    b3 = dft.RKS(mol);    b3.xc = 'b3lyp';  b3.kernel()
+    assert hf.converged and pbe.converged and b3.converged
+    return gap_homo_lumo(hf), gap_homo_lumo(pbe), gap_homo_lumo(b3)
+
+print("  D(nm)     HF     PBE   B3LYP")
+for d in [0.8, 0.9, 1.0, 1.2]:
+    g_hf, g_pbe, g_b3 = calcula_gaps(d)
+    print("  %4.1f  %6.2f  %6.2f  %6.2f" % (d, g_hf, g_pbe, g_b3))
+\end{lstlisting}
+
+\begin{lstlisting}[style=console]
+  D(nm)     HF     PBE   B3LYP
+   0.8   16.82    6.05    8.40
+   0.9   14.76    5.42    7.61
+   1.0   14.61    5.28    7.44
+   1.2   13.65    4.79    6.79
+\end{lstlisting}
+\end{caixamaos}
+
+\noindent
+O resultado é eloquente. A Tabela~\ref{tab:gapmetodos} reúne os números. Para o
+nanocristal de $0{,}8$~nm, o \emph{gap} despenca de $16{,}8$~eV (HF) para $6{,}1$~eV
+(PBE) --- uma redução de quase três vezes. O B3LYP, que reintroduz $20\%$ da troca
+exata de Hartree-Fock, situa-se \textbf{entre} os dois extremos, exatamente como a
+teoria previa: mais troca exata, maior o \emph{gap}.
+
+\begin{table}[h]
+  \centering
+  \caption{\emph{Gap} HOMO--LUMO (eV) de nanocristais de Si:H por três métodos
+  (base STO-3G). A correlação capturada pela DFT reduz drasticamente a
+  superestimativa do Hartree-Fock.}
+  \label{tab:gapmetodos}
+  \begin{tabular}{lcccc}
+    \toprule
+    \textbf{Diâmetro} & \textbf{HF} & \textbf{PBE} & \textbf{B3LYP}
+                      & \textbf{Tendência} \\
+    \midrule
+    $0{,}8$~nm & $16{,}82$ & $6{,}05$ & $8{,}40$ & \multirow{4}{*}{$\searrow$ com o tamanho} \\
+    $0{,}9$~nm & $14{,}76$ & $5{,}42$ & $7{,}61$ & \\
+    $1{,}0$~nm & $14{,}61$ & $5{,}28$ & $7{,}44$ & \\
+    $1{,}2$~nm & $13{,}65$ & $4{,}79$ & $6{,}79$ & \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\noindent
+E, crucialmente, os três métodos preservam a \textbf{tendência} do confinamento: o
+\emph{gap} cai monotonicamente com o tamanho em todos eles. A física estava certa
+desde o Capítulo~4; a DFT apenas ajustou a escala. Um gráfico sobrepondo as três
+curvas torna o quadro imediato:
+
+\begin{lstlisting}[style=python]
+import matplotlib.pyplot as plt
+
+diametros = [0.8, 0.9, 1.0, 1.2]
+resultados = np.array([calcula_gaps(d) for d in diametros])   # colunas: HF, PBE, B3LYP
+
+for coluna, nome, marca in zip(range(3), ["HF", "PBE", "B3LYP"], ["s--", "o-", "^-"]):
+    plt.plot(diametros, resultados[:, coluna], marca, label=nome)
+plt.xlabel("Diametro (nm)"); plt.ylabel("Gap HOMO-LUMO (eV)")
+plt.legend(); plt.grid(alpha=0.3); plt.show()
+\end{lstlisting}
+
+\begin{caixaatencao}
+\textbf{O \emph{gap} de Kohn-Sham não é o \emph{gap} óptico.} Reduzimos a
+superestimativa do Hartree-Fock, mas o leitor rigoroso deve saber: a diferença
+$\varepsilon_{\text{LUMO}} - \varepsilon_{\text{HOMO}}$ dos orbitais de Kohn-Sham é
+uma grandeza \emph{do estado fundamental}, e não corresponde exatamente à energia
+de uma excitação óptica real (que envolve, ademais, a atração entre o elétron
+excitado e o buraco que ele deixa). O \emph{gap} óptico rigoroso exige a
+\textbf{DFT dependente do tempo} (TDDFT), assunto de um volume futuro. Some-se a
+isso a base mínima STO-3G, que ainda infla os virtuais. Nosso objetivo aqui é mais
+modesto e legítimo: mostrar que a \textbf{correlação move os números na direção
+certa}, aproximando-os da faixa experimental de $3$--$4$~eV. E move --- de forma
+espetacular.
+\end{caixaatencao}
+
+%---------------------------------------------------------------------
+\begin{caixaancora}
+\textbf{Etapa 2 --- O \emph{gap} corrigido e a densidade de spin do doador.}
+
+Com a DFT em mãos, revisitamos o sistema Si:P do Capítulo~4 --- desta vez com
+camada aberta irrestrita (\code{dft.UKS}), o método que dá a cada spin sua própria
+densidade e, por isso, acessa diretamente a grandeza que definirá o \qubit{}: a
+\textbf{densidade de spin} $\rho_\uparrow(\mathbf{r}) - \rho_\downarrow(\mathbf{r})$,
+a assinatura espacial do elétron desemparelhado.
+
+\begin{lstlisting}[style=python]
+import numpy as np
+from pyscf import gto, dft
+# reutiliza construir_nanocristal, inserir_doador, para_xyz do Capitulo 3
+
+si, h = construir_nanocristal(1.0)
+idx_p = inserir_doador(si)
+mol = gto.M(atom=para_xyz(si, h, idx_p), basis='sto-3g', spin=1, verbose=0)
+
+mf = dft.UKS(mol)
+mf.xc = 'pbe'
+mf.kernel()
+assert mf.converged
+
+# densidade de spin projetada em cada atomo (analise de Mulliken)
+dma, dmb = mf.make_rdm1()                 # matrizes de densidade alfa e beta
+S = mol.intor('int1e_ovlp')
+spin_ao = np.einsum('ij,ji->i', dma - dmb, S)   # spin liquido por funcao de base
+fatias = mol.aoslice_by_atom()
+spin_atomo = np.array([spin_ao[a[2]:a[3]].sum() for a in fatias])
+
+iP = [mol.atom_symbol(i) for i in range(mol.natm)].index('P')
+dist = np.linalg.norm(mol.atom_coords() - mol.atom_coords()[iP], axis=1) * 0.529
+
+print("Spin total integrado:            %.2f" % spin_atomo.sum())
+print("Densidade de spin sobre o P:     %.0f%%" % (100 * spin_atomo[iP]))
+print("Densidade de spin ate 3 A do P:  %.0f%%" % (100 * spin_atomo[dist < 3].sum()))
+\end{lstlisting}
+
+\begin{lstlisting}[style=console]
+Spin total integrado:            1.00
+Densidade de spin sobre o P:     21%
+Densidade de spin ate 3 A do P:  86%
+\end{lstlisting}
+
+\textbf{A física do \qubit{}, agora em cores de spin.} O spin líquido integra a
+exatamente~1 --- há um, e apenas um, elétron desemparelhado, como manda a contagem
+ímpar do Capítulo~3. E ele não está espalhado: \textbf{86\% da densidade de spin
+concentra-se num raio de $3$~Å em torno do fósforo}, corroborando com um método
+correlacionado o que o SOMO de Hartree-Fock já havia sugerido. O elétron do doador
+é, de fato, um ``átomo de hidrogênio artificial'' ancorado ao caroço P$^+$.
+
+\vspace{0.3cm}
+\textbf{Por que a densidade de spin é o próximo tesouro.} Essa não é uma grandeza
+qualquer. É a densidade de spin \emph{no próprio núcleo} de $^{31}$P que determina
+o \textbf{acoplamento hiperfino de contato de Fermi} --- o diálogo entre o spin do
+elétron (nosso \qubit{}) e o spin do núcleo, e um dos parâmetros mais importantes
+de um \qubit{} de spin em silício. Acabamos de calcular, pela primeira vez no
+livro, o objeto de onde esse acoplamento brota. A Parte~II inteira se dedicará a
+extraí-lo com rigor.
+
+\vspace{0.3cm}
+\textbf{Sua tarefa.} No \emph{notebook} \code{projeto\_ancora\_SiP.ipynb}:
+\begin{enumerate}[leftmargin=*,nosep]
+  \item Reproduza a tabela HF/PBE/B3LYP do \emph{gap} (Tabela~\ref{tab:gapmetodos})
+        e gere o gráfico sobreposto das três curvas.
+  \item Execute o cálculo \code{dft.UKS} do doador de $1{,}0$~nm e registre a
+        densidade de spin sobre o P e dentro de $3$~Å.
+  \item Numa célula de texto, explique com suas palavras: (a)~por que a DFT reduz o
+        \emph{gap} em relação ao HF; (b)~por que a localização da densidade de spin
+        no fósforo é uma boa notícia para a estabilidade do \qubit{}.
+\end{enumerate}
+
+\vspace{0.3cm}
+\textbf{A seguir.} Encerramos a Parte~I com uma imagem completa da estrutura
+eletrônica do nosso ponto quântico: geometria (Cap.~3), orbitais e \emph{gap}
+(Cap.~4) e agora um \emph{gap} corrigido pela correlação, além da densidade de spin
+do doador (Cap.~5). A Parte~II dará o salto seguinte --- transformar essa densidade
+de spin nos \textbf{parâmetros magnéticos} que caracterizam o \qubit{}: o
+acoplamento hiperfino e o tensor~\emph{g}.
+\end{caixaancora}
+
+%---------------------------------------------------------------------
+\section*{Resumo do Capítulo}
+\addcontentsline{toc}{section}{Resumo do Capítulo}
+%---------------------------------------------------------------------
+
+\begin{itemize}[leftmargin=*]
+  \item O Hartree-Fock ignora a \textbf{correlação eletrônica}
+        ($E_{\text{corr}} = E_{\text{exata}} - E_{\text{HF}} < 0$), o que infla
+        sistematicamente os \emph{gaps}.
+  \item A \textbf{DFT} reformula o problema em torno da densidade
+        $\rho(\mathbf{r})$, que depende de apenas 3 coordenadas. Os teoremas de
+        \textbf{Hohenberg-Kohn} garantem que $E = E[\rho]$ e que $\rho$ é
+        variacional.
+  \item As \textbf{equações de Kohn-Sham} têm a mesma estrutura iterativa (SCF) do
+        Hartree-Fock; toda a dificuldade reside no \textbf{funcional de troca e
+        correlação} $E_{\text{xc}}[\rho]$, que é aproximado.
+  \item A \textbf{escada de Jacob} organiza os funcionais: LDA
+        ($\rho$) $\to$ GGA/PBE ($\nabla\rho$) $\to$ meta-GGA $\to$ híbridos
+        (B3LYP, PBE0, com troca exata).
+  \item No \pyscf{}, DFT é o módulo \code{dft}: \code{dft.RKS}/\code{ROKS}/\code{UKS},
+        com \code{mf.xc = 'pbe'} (ou \code{'b3lyp'}) e a malha \code{mf.grids.level}.
+  \item Na prática, PBE e B3LYP \textbf{reduziram o \emph{gap}} do nanocristal de
+        Si:H em relação ao HF (de $\sim\!17$ para $\sim\!6$~eV a $0{,}8$~nm),
+        preservando a tendência de confinamento --- embora o \emph{gap} de
+        Kohn-Sham ainda não seja o \emph{gap} óptico (TDDFT).
+  \item \textbf{Projeto Âncora:} com \code{dft.UKS}, obtivemos a \textbf{densidade
+        de spin} do doador, localizada ($\sim\!86\%$ a menos de $3$~Å do P) --- a
+        semente do acoplamento hiperfino que a Parte~II calculará.
+\end{itemize}
+
+%---------------------------------------------------------------------
+\section*{Exercícios}
+\addcontentsline{toc}{section}{Exercícios}
+%---------------------------------------------------------------------
+
+\begin{enumerate}[leftmargin=*,label=\textbf{5.\arabic*}]
+  \item \textbf{HF é DFT?} Explique, em duas ou três frases, por que o Hartree-Fock
+        pode ser visto como um caso particular das equações de Kohn-Sham. Qual
+        termo de $E_{\text{xc}}$ ele inclui e qual ele omite?
+
+  \item \textbf{O efeito do funcional.} Para o nanocristal de $0{,}8$~nm, calcule o
+        \emph{gap} com \code{'lda'}, \code{'pbe'} e \code{'pbe0'}. Ordene os
+        funcionais pelo \emph{gap} que produzem e relacione a ordem à fração de
+        troca exata de cada um.
+
+  \item \textbf{A malha importa.} Rode o nanocristal de $0{,}9$~nm com PBE variando
+        \code{mf.grids.level} de $1$ a $5$. A partir de qual nível a energia total
+        estabiliza (varia menos de $10^{-4}$~Ha)? Que nível você recomendaria como
+        compromisso?
+
+  \item \textbf{Correlação em números.} Para o nanocristal de $0{,}8$~nm, calcule a
+        energia total em HF e em PBE. A diferença é uma estimativa (grosseira) da
+        energia de correlação. Que fração da energia total ela representa? Confere
+        com o ``$\sim 1\%$'' mencionado no texto?
+
+  \item \textbf{Restrito vs.\ irrestrito.} Repita o cálculo do doador Si:P de
+        $1{,}0$~nm com \code{dft.ROKS} e com \code{dft.UKS} (ambos com PBE). Compare
+        a energia total e o valor de \code{mf.spin\_square()}. O UKS sofre de
+        \emph{contaminação de spin}? O que $\langle S^2\rangle$ deveria valer
+        idealmente para um dubleto?
+
+  \item \textbf{Projeto Âncora.} Refaça a Etapa~2 trocando PBE por B3LYP no cálculo
+        \code{dft.UKS} do doador. A densidade de spin sobre o fósforo muda muito? O
+        que isso sugere sobre a robustez da localização do \qubit{} frente à
+        escolha do funcional?
+\end{enumerate}
