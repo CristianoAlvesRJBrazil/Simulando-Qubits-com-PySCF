@@ -19,6 +19,9 @@ __pycache__/
 *.lof
 *.lot
 
+# Saidas geradas ao executar os notebooks (o leitor as regenera)
+notebooks/gap_vs_tamanho.png
+
 # Arquivos temporarios / lixo
 pyscf
 *.xyz

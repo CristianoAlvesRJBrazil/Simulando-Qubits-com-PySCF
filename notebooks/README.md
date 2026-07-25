@@ -11,8 +11,15 @@ localmente no **Jupyter** (via Anaconda).
 | `Capitulo_01_Python_Essencial.ipynb` | 1 — Python Essencial para Química Quântica |
 | `Capitulo_02_Primeiro_Calculo_PySCF.ipynb` | 2 — O Primeiro Cálculo com PySCF |
 | `Capitulo_03_Do_Atomo_ao_Nanocristal.ipynb` | 3 — Do Átomo ao Nanocristal: Construindo um Ponto Quântico |
+| `Capitulo_04_Hartree_Fock_Orbitais.ipynb` | 4 — Hartree-Fock e o Diagrama de Orbitais do Ponto Quântico |
 
 *(novos capítulos serão adicionados aqui)*
+
+⏱️ O *notebook* do Capítulo 4 executa cálculos Hartree-Fock reais e é o mais
+demorado até aqui: a varredura do *gap* leva alguns minutos (o ponto de 1,2 nm,
+com 364 funções de base, responde pela maior parte). Para um teste rápido, remova
+o `1.2` da lista de diâmetros. Ele regenera a figura `gap_vs_tamanho.png` usada
+no livro.
 
 O *notebook* do Capítulo 3 usa também **matplotlib** (gráfico do confinamento) e
 **py3Dmol** (visualização 3D interativa do nanocristal). Ambos são opcionais: a
