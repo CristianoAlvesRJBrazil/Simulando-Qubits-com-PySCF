@@ -10,8 +10,15 @@ localmente no **Jupyter** (via Anaconda).
 |----------|----------|
 | `Capitulo_01_Python_Essencial.ipynb` | 1 — Python Essencial para Química Quântica |
 | `Capitulo_02_Primeiro_Calculo_PySCF.ipynb` | 2 — O Primeiro Cálculo com PySCF |
+| `Capitulo_03_Do_Atomo_ao_Nanocristal.ipynb` | 3 — Do Átomo ao Nanocristal: Construindo um Ponto Quântico |
 
 *(novos capítulos serão adicionados aqui)*
+
+O *notebook* do Capítulo 3 usa também **matplotlib** (gráfico do confinamento) e
+**py3Dmol** (visualização 3D interativa do nanocristal). Ambos são opcionais: a
+célula de visualização degrada com elegância caso o py3Dmol não esteja instalado.
+Ele gera o arquivo de geometria `SiP_1.5nm.xyz`, reutilizado nos capítulos
+seguintes.
 
 ## Como executar
 
