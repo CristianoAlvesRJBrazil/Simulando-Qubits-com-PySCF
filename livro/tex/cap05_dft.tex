@@ -319,17 +319,17 @@ for d in [0.8, 0.9, 1.0, 1.2]:
 
 \begin{lstlisting}[style=console]
   D(nm)     HF     PBE   B3LYP
-   0.8   16.82    6.05    8.40
-   0.9   14.76    5.42    7.61
-   1.0   14.61    5.28    7.44
-   1.2   13.65    4.79    6.79
+   0.8   16.82    8.29    9.86
+   0.9   14.76    6.77    8.23
+   1.0   14.61    6.66    8.11
+   1.2   13.65    5.99    7.37
 \end{lstlisting}
 \end{caixamaos}
 
 \noindent
 O resultado é eloquente. A Tabela~\ref{tab:gapmetodos} reúne os números. Para o
-nanocristal de $0{,}8$~nm, o \emph{gap} despenca de $16{,}8$~eV (HF) para $6{,}1$~eV
-(PBE) --- uma redução de quase três vezes. O B3LYP, que reintroduz $20\%$ da troca
+nanocristal de $0{,}8$~nm, o \emph{gap} cai de $16{,}82$~eV (HF) para $8{,}29$~eV
+(PBE) --- uma redução para praticamente metade. O B3LYP, que reintroduz $20\%$ da troca
 exata de Hartree-Fock, situa-se \textbf{entre} os dois extremos, exatamente como a
 teoria previa: mais troca exata, maior o \emph{gap}.
 
@@ -344,10 +344,10 @@ teoria previa: mais troca exata, maior o \emph{gap}.
     \textbf{Diâmetro} & \textbf{HF} & \textbf{PBE} & \textbf{B3LYP}
                       & \textbf{Tendência} \\
     \midrule
-    $0{,}8$~nm & $16{,}82$ & $6{,}05$ & $8{,}40$ & \multirow{4}{*}{$\searrow$ com o tamanho} \\
-    $0{,}9$~nm & $14{,}76$ & $5{,}42$ & $7{,}61$ & \\
-    $1{,}0$~nm & $14{,}61$ & $5{,}28$ & $7{,}44$ & \\
-    $1{,}2$~nm & $13{,}65$ & $4{,}79$ & $6{,}79$ & \\
+    $0{,}8$~nm & $16{,}82$ & $8{,}29$ & $9{,}86$ & \multirow{4}{*}{$\searrow$ com o tamanho} \\
+    $0{,}9$~nm & $14{,}76$ & $6{,}77$ & $8{,}23$ & \\
+    $1{,}0$~nm & $14{,}61$ & $6{,}66$ & $8{,}11$ & \\
+    $1{,}2$~nm & $13{,}65$ & $5{,}99$ & $7{,}37$ & \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -425,13 +425,13 @@ print("Densidade de spin ate 3 A do P:  %.0f%%" % (100 * spin_atomo[dist < 3].su
 
 \begin{lstlisting}[style=console]
 Spin total integrado:            1.00
-Densidade de spin sobre o P:     21%
-Densidade de spin ate 3 A do P:  86%
+Densidade de spin sobre o P:     12%
+Densidade de spin ate 3 A do P:  80%
 \end{lstlisting}
 
 \textbf{A física do \qubit{}, agora em cores de spin.} O spin líquido integra a
 exatamente~1 --- há um, e apenas um, elétron desemparelhado, como manda a contagem
-ímpar do Capítulo~3. E ele não está espalhado: \textbf{86\% da densidade de spin
+ímpar do Capítulo~3. E ele não está espalhado: \textbf{80\% da densidade de spin
 concentra-se num raio de $3$~Å em torno do fósforo}, corroborando com um método
 correlacionado o que o SOMO de Hartree-Fock já havia sugerido. O elétron do doador
 é, de fato, um ``átomo de hidrogênio artificial'' ancorado ao caroço P$^+$.
@@ -492,7 +492,7 @@ acoplamento hiperfino e o tensor~\emph{g}.
         preservando a tendência de confinamento --- embora o \emph{gap} de
         Kohn-Sham ainda não seja o \emph{gap} óptico (TDDFT).
   \item \textbf{Projeto Âncora:} com \code{dft.UKS}, obtivemos a \textbf{densidade
-        de spin} do doador, localizada ($\sim\!86\%$ a menos de $3$~Å do P) --- a
+        de spin} do doador, localizada ($\sim\!80\%$ a menos de $3$~Å do P) --- a
         semente do acoplamento hiperfino que a Parte~II calculará.
 \end{itemize}
 

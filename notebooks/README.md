@@ -12,8 +12,13 @@ localmente no **Jupyter** (via Anaconda).
 | `Capitulo_02_Primeiro_Calculo_PySCF.ipynb` | 2 — O Primeiro Cálculo com PySCF |
 | `Capitulo_03_Do_Atomo_ao_Nanocristal.ipynb` | 3 — Do Átomo ao Nanocristal: Construindo um Ponto Quântico |
 | `Capitulo_04_Hartree_Fock_Orbitais.ipynb` | 4 — Hartree-Fock e o Diagrama de Orbitais do Ponto Quântico |
+| `Capitulo_05_DFT_Corrigindo_o_Gap.ipynb` | 5 — Teoria do Funcional da Densidade: Corrigindo o *Gap* |
 
 *(novos capítulos serão adicionados aqui)*
+
+⏱️ Os *notebooks* dos Capítulos 4 e 5 executam cálculos pesados; o do Cap. 5 é o
+mais longo (três métodos — HF, PBE e B3LYP — em quatro tamanhos). Em ambos, para
+um teste rápido, remova o `1.2` da lista de diâmetros.
 
 ⏱️ O *notebook* do Capítulo 4 executa cálculos Hartree-Fock reais e é o mais
 demorado até aqui: a varredura do *gap* leva alguns minutos (o ponto de 1,2 nm,
