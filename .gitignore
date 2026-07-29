@@ -67,6 +67,10 @@ livro/tex/cap12_*.tex
 # PDFs de trabalho / versoes intermediarias
 livro/Livro_PySCF_[0-9]*.pdf
 
+# Aulas de capitulos nao divulgados (mesma regra do manuscrito)
+apresentacoes/Aula_Capitulo_0[6-9]*
+apresentacoes/Aula_Capitulo_1[0-2]*
+
 # Relatorios internos de planejamento (avaliacao franca, roteiro, pendencias).
 # Nao sao material de divulgacao. Remova esta linha se quiser publica-los.
 relatorio/

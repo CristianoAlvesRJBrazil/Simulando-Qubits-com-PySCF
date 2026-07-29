@@ -1,0 +1,78 @@
+%=====================================================================
+%  Simulando Qubits com PySCF: Uma Jornada do Zero aos Pontos
+%  Quanticos para Computacao Quantica
+%  Autor: Cristiano Alves
+%
+%  ARQUIVO PRINCIPAL. O conteudo esta dividido em tex/:
+%     tex/preambulo.tex ... pacotes, cores, caixas didaticas, comandos
+%     tex/capa.tex ........ folha de rosto
+%     tex/prefacio.tex .... textos pre-textuais
+%     tex/parteN.tex ...... aberturas das partes
+%     tex/capNN_*.tex ..... um arquivo por capitulo
+%
+%  Compile com:
+%      latexmk -pdf Livro_PySCF.tex
+%  ou  pdflatex Livro_PySCF.tex  (2x, para sumario/referencias)
+%=====================================================================
+
+\input{tex/preambulo}
+
+%=====================================================================
+\begin{document}
+\frenchspacing
+
+%---------------------------------------------------------------------
+%  Capa
+%---------------------------------------------------------------------
+\input{tex/capa}
+
+%---------------------------------------------------------------------
+%  Pre-textual
+%---------------------------------------------------------------------
+\frontmatter
+\pagestyle{plain}
+
+\input{tex/prefacio}
+\input{tex/como_usar}
+
+\cleardoublepage
+\tableofcontents
+
+%---------------------------------------------------------------------
+%  Corpo do livro
+%---------------------------------------------------------------------
+\mainmatter
+\pagestyle{fancy}
+
+% ---------------- Parte 0: Preparando o Laboratorio ------------------
+%\input{tex/parte0}
+%\input{tex/cap01_python}
+\input{tex/cap02_primeiro_calculo}
+
+% ---------------- Parte I: Estrutura Eletronica ----------------------
+%\input{tex/parte1}
+%\input{tex/cap03_nanocristal}
+%\input{tex/cap04_hartree_fock}
+%\input{tex/cap05_dft}
+
+% ---------------- Parte II: Parametros Magneticos --------------------
+%\input{tex/parte2}
+%\input{tex/cap06_hiperfino}
+%\input{tex/cap07_tensor_g}
+
+% ---------------- Parte III: Dois Qubits e Coerencia -----------------
+%\input{tex/parte3}
+%\input{tex/cap08_troca}
+%\input{tex/cap09_decoerencia}
+
+% ---------------- Parte IV: Controlando o Qubit ----------------------
+%\input{tex/parte4}
+%\input{tex/cap10_stark}
+
+% ---------------- Parte V: Do Qubit ao Dispositivo -------------------
+%\input{tex/parte5}
+%\input{tex/cap11_multiescala}
+
+%\input{tex/cap12_consolidacao}
+
+\end{document}

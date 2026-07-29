@@ -67,8 +67,19 @@ nada — clique no *badge*:
 | 2 — O Primeiro Cálculo com PySCF | [`ipynb`](notebooks/Capitulo_02_Primeiro_Calculo_PySCF.ipynb) | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/CristianoAlvesRJBrazil/Simulando-Qubits-com-PySCF/blob/main/notebooks/Capitulo_02_Primeiro_Calculo_PySCF.ipynb) |
 | 3 — Do Átomo ao Nanocristal | [`ipynb`](notebooks/Capitulo_03_Do_Atomo_ao_Nanocristal.ipynb) | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/CristianoAlvesRJBrazil/Simulando-Qubits-com-PySCF/blob/main/notebooks/Capitulo_03_Do_Atomo_ao_Nanocristal.ipynb) |
 | 4 — Hartree-Fock e o Diagrama de Orbitais ⏱️ | [`ipynb`](notebooks/Capitulo_04_Hartree_Fock_Orbitais.ipynb) | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/CristianoAlvesRJBrazil/Simulando-Qubits-com-PySCF/blob/main/notebooks/Capitulo_04_Hartree_Fock_Orbitais.ipynb) |
+| 5 — Teoria do Funcional da Densidade ⏱️ | [`ipynb`](notebooks/Capitulo_05_DFT_Corrigindo_o_Gap.ipynb) | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/CristianoAlvesRJBrazil/Simulando-Qubits-com-PySCF/blob/main/notebooks/Capitulo_05_DFT_Corrigindo_o_Gap.ipynb) |
 
 <sub>⏱️ executa cálculos Hartree-Fock reais; a varredura do *gap* leva alguns minutos.</sub>
+
+
+### 🎓 Aulas em PowerPoint
+
+Apresentações prontas para sala de aula, com a identidade visual do livro e os
+mesmos números calculados. Ver [`apresentacoes/`](apresentacoes/).
+
+| Aula | Capítulo | |
+|---|---|---|
+| [`Cap. 2 — O Primeiro Cálculo`](apresentacoes/Aula_Capitulo_02_Primeiro_Calculo_PySCF.pptx) | 2 | 17 slides |
 
 ---
 
@@ -86,6 +97,8 @@ O fio condutor da obra. A cada capítulo, uma peça é acrescentada ao *pipeline
 | 5 | Acoplamento de troca *J*: a porta de dois *qubits* | 8 |
 | 6 | Tempo de coerência e purificação isotópica | 9 |
 | 7 | Controle elétrico por eletrodo de porta | 10 |
+| 8 | Registrador de dez *qubits* e a porta √SWAP | 11 |
+| 9 | *Pipeline* reprodutível e relatório final | 12 |
 
 ### Resultados da amostra
 
@@ -98,9 +111,9 @@ Obtidos nos capítulos disponíveis publicamente:
 - **O orbital do doador é localizado:** 83 % da densidade do SOMO num raio de
   3 Å do fósforo — a confirmação, por primeiros princípios, do "hidrogênio
   artificial" previsto pela intuição química.
-- **A correlação eletrônica importa:** o *gap* HF/STO-3G de ~17 eV cai para ~6 eV
-  com PBE, aproximando-se da faixa experimental sem perder a tendência de
-  confinamento.
+- **A correlação eletrônica importa:** o *gap* HF/STO-3G de ~17 eV cai para ~8 eV
+  com PBE (e ~10 eV com B3LYP), aproximando-se da faixa experimental sem perder
+  a tendência de confinamento.
 
 ---
 
@@ -126,6 +139,10 @@ Obtidos nos capítulos disponíveis publicamente:
 **Parte IV — Controlando o Qubit**
 - 📝 10 — O Eletrodo de Porta: Controle Elétrico do Qubit
 
+**Parte V — Do Qubit ao Dispositivo**
+- 📝 11 — Além do PySCF: do Parâmetro ao Dispositivo
+- 📝 12 — O Projeto Âncora Consolidado
+
 <sub>✅ disponível na amostra · 📝 redigido, não distribuído aqui · plano completo
 na [proposta editorial](proposta/Livro_PySCF_Quantico.pdf)</sub>
 
@@ -138,6 +155,7 @@ na [proposta editorial](proposta/Livro_PySCF_Quantico.pdf)</sub>
 | [`livro/`](livro/) | Amostra pública: `Livro_PySCF_Amostra.pdf` e suas fontes LaTeX em [`livro/tex/`](livro/tex/). |
 | [`notebooks/`](notebooks/) | *Notebooks* Jupyter, um por capítulo, com saídas reais. |
 | [`codigo/`](codigo/) | Módulos Python reutilizáveis (ex.: gerador de nanocristais). |
+| [`apresentacoes/`](apresentacoes/) | Aulas em PowerPoint (16:9) que acompanham os capítulos. |
 | [`proposta/`](proposta/) | Proposta editorial: justificativa, público-alvo e sumário detalhado. |
 
 ---
