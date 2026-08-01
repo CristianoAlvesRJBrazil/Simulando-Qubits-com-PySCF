@@ -4,7 +4,7 @@
 
 ### Uma Jornada do Zero aos Pontos Quânticos para a Computação Quântica
 
-**Cristiano Alves**
+**Cristiano da Costa Alves** · **Nilseia Aparecida Barbosa** · **Fernando Manuel Araújo Moreira**
 
 *Do primeiro `import pyscf` ao qubit de spin em Si:P*
 
@@ -219,6 +219,6 @@ o Google Colab.
 
 <div align="center">
 
-*Obra em desenvolvimento · Todos os direitos reservados ao autor*
+*Obra em desenvolvimento · Todos os direitos reservados aos autores*
 
 </div>
