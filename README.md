@@ -156,6 +156,7 @@ na [proposta editorial](proposta/Livro_PySCF_Quantico.pdf)</sub>
 | [`notebooks/`](notebooks/) | *Notebooks* Jupyter, um por capítulo, com saídas reais. |
 | [`codigo/`](codigo/) | Módulos Python reutilizáveis (ex.: gerador de nanocristais). |
 | [`apresentacoes/`](apresentacoes/) | Aulas em PowerPoint (16:9) que acompanham os capítulos. |
+| [`artigos_publicados/`](artigos_publicados/) | Códigos Python/PySCF das pesquisas publicadas a partir do projeto, um artigo por pasta. |
 | [`proposta/`](proposta/) | Proposta editorial: justificativa, público-alvo e sumário detalhado. |
 
 ---
