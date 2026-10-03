@@ -76,8 +76,8 @@ python3 codigo/gerar_tabelas.py                                 # tabelas
 for f in fig_estruturas fig_gap_vs_D fig_robustez fig_relaxacao fig_defeito; do python3 codigo/$f.py; done
 ```
 
-O conjunto completo de dados e geometrias acompanha o artigo como material suplementar e será depositado em
-repositório público com DOI após a publicação.
+O conjunto completo de dados e geometrias acompanha o artigo como material suplementar. O artigo cita esta
+pasta na seção *Data availability*.
 
 ## Glossário
 
